@@ -84,6 +84,17 @@ UpdatePrompt: |
       without complex setup.
     id: homebrew/core/tgpt
     tags: [ai, command-line]
+  - name: gemini-cli
+    desc: Interact with Google Gemini AI models from the command-line
+    homepage: https://github.com/google-gemini/gemini-cli
+    id: homebrew/core/gemini-cli
+    tags: [ai, command-line]
+    license: Apache-2.0
+    info: >-
+      Gemini CLI is an open-source command-line interface for Google's Gemini family of AI models.
+      It provides terminal-first access to chat and multimodal capabilities, built-in tools for
+      grounding (web search, file operations), and integrations for automation and MCP servers.
+      Authentication options include Google OAuth, API key, and Vertex AI for enterprise workflows.
 - id: archive
   name: Archiving & Compression
   desc: Tools for compressing, archiving, and extracting files.
