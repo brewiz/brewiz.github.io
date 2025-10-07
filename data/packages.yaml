@@ -1909,6 +1909,17 @@ UpdatePrompt: |
       configuration.
     id: homebrew/core/sshuttle
     tags: [network, ssh, proxy]
+  - name: tailscale
+    desc: Easiest, most secure way to use WireGuard and 2FA
+    homepage: https://tailscale.com
+    info: >-
+      Tailscale builds a secure mesh VPN using WireGuard to connect your devices with minimal
+      configuration. It provides zero‑config networking, optional two‑factor authentication, and
+      easy device and access management across platforms. Useful for private networking, remote access,
+      and securely exposing services between machines.
+    id: homebrew/core/tailscale
+    tags: [network, security, command-line]
+    license: BSD-3-Clause
   - name: wget
     desc: Internet file retriever
     homepage: https://www.gnu.org/software/wget/
