@@ -136,6 +136,16 @@ UpdatePrompt: |
       unique features for tab and workspace management.
     id: homebrew/cask/arc
     tags: [web, productivity]
+  - name: kotlin
+    desc: Statically typed programming language for the JVM
+    homepage: https://kotlinlang.org/
+    id: homebrew/core/kotlin
+    tags: [programming-language, java, development]
+    license: Apache-2.0
+    info: >-
+      Kotlin is a modern, statically typed programming language that targets the JVM and also supports
+      compilation to JavaScript and native binaries. It is interoperable with Java and widely used for
+      Android and server-side development.
   - name: Brave
     desc: Privacy-focused web browser
     homepage: https://brave.com/
@@ -221,6 +231,15 @@ UpdatePrompt: |
       interface. It's written in Rust for speed and safety.
     id: homebrew/core/xh
     tags: [http, command-line, api, testing]
+  - name: zen
+    desc: Gecko based web browser
+    homepage: https://zen-browser.app/
+    cask: true
+    id: homebrew/cask/zen
+    tags: [web, macos]
+    info: >-
+      Zen Browser is a Gecko-based web browser with a focus on privacy and usability. It offers a streamlined
+      browsing experience and is distributed as a macOS desktop app.
 - id: cloud
   name: Cloud & DevOps
   desc: Tools for cloud infrastructure, deployment automation, and DevOps workflows.
@@ -546,6 +565,16 @@ UpdatePrompt: |
       Android development.
     id: homebrew/core/gradle
     tags: [build, java, development]
+  - name: gradle@8
+    desc: gradle 8 (alternate formula) — Open-source build automation tool based on the Groovy and Kotlin DSL
+    homepage: https://www.gradle.org/
+    id: homebrew/core/gradle@8
+    tags: [build, java, development]
+    license: Apache-2.0
+    info: >-
+      Gradle 8 is a stable release series of the Gradle build automation system. It provides flexible
+      build scripting using the Groovy or Kotlin DSL and is commonly used for JVM and Android projects.
+      This keg-only formula is an alternate version kept separate from the main `gradle` formula.
   - name: leiningen
     desc: Build tool for Clojure
     homepage: https://github.com/technomancy/leiningen
@@ -1164,6 +1193,16 @@ UpdatePrompt: |
       IntelliJ IDEA, PyCharm, WebStorm, and others, keeping them updated and organized.
     id: homebrew/cask/jetbrains-toolbox
     tags: [ide, development]
+  - name: Cursor
+    desc: Write, edit, and chat about your code with AI
+    homepage: https://www.cursor.com/
+    cask: true
+    id: homebrew/cask/cursor
+    tags: [editor, ide, ai]
+    info: >-
+      Cursor is a desktop application that integrates code editing with AI-assisted features for
+      writing and browsing code. It provides an editor-centric experience with tools to speed up
+      development workflows.
   - name: jupyterlab
     desc: Interactive environments for writing and running code
     homepage: https://jupyter.org/
@@ -1797,6 +1836,15 @@ UpdatePrompt: |
       Tesseract is an open-source OCR engine that recognizes text in images and converts it to machine-readable text. (source: https://tesseract-ocr.github.io/)
     id: homebrew/core/tesseract
     tags: [graphics, conversion]
+  - name: poppler
+    desc: PDF rendering library and utilities
+    homepage: https://poppler.freedesktop.org/
+    id: homebrew/core/poppler
+    tags: [graphics, conversion]
+    license: GPL-2.0-only
+    info: >-
+      Poppler is a PDF rendering library derived from the xpdf codebase. It provides utilities to render
+      and convert PDF documents and is used by many applications for PDF processing.
   - name: flameshot
     desc: Screenshot software with built-in annotation tools
     homepage: https://flameshot.org/
