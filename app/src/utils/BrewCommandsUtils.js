@@ -12,7 +12,7 @@ export function generateBrewCommands(categories, selectedPackages, outdatedPacka
     addUninstallCommands(commands, selectedPkgs);
   }
   addOutdatedPackagesCommand(commands, outdatedPackages);
-  commands.push("brew cleanup # Consider to remove old versions and free disk space");
+  commands.push("brew autoremove && brew cleanup # Consider running to remove unused dependencies and free disk space");
 
   return commands;
 }
