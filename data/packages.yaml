@@ -1764,13 +1764,14 @@ UpdatePrompt: |
     tags: [visualization, documentation]
   - name: OpenSCAD
     desc: Programmable solid 3D CAD modeller
-    homepage: https://www.openscad.org/
+    homepage: https://www.openscad.org/downloads.html#snapshots
     cask: true
     info: >-
-      OpenSCAD is a software for creating solid 3D CAD models. Unlike most free software for creating 3D
-      models, it focuses on CAD aspects rather than artistic ones, using a descriptive programming
-      language.
-    id: homebrew/cask/openscad
+      OpenSCAD is a software for creating solid 3D CAD models. This is the snapshot/development version
+      with the latest features and improvements. Unlike most free software for creating 3D models,
+      it focuses on CAD aspects rather than artistic ones, using a descriptive programming language.
+    id: homebrew/cask/openscad@snapshot
+    token: openscad@snapshot
     tags: [design, programming]
   - name: Orca Slicer
     desc: G-code generator for 3D printers

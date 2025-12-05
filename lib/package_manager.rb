@@ -49,7 +49,11 @@ class PackageManager
 
     @packages.each do |category|
       category['packages'].map! do |pkg|
-        pkg.merge(brew_info.delete(pkg['id']) || {}).select { |_, v| v }
+        # Preserve tags if they exist in the original package
+        tags = pkg['tags']
+        merged = pkg.merge(brew_info.delete(pkg['id']) || {}).select { |_, v| v }
+        merged['tags'] = tags if tags
+        merged
       end
       category['packages'].sort_by! { |pkg| pkg['name'].downcase }
     end
