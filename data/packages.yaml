@@ -662,6 +662,16 @@ UpdatePrompt: |
       project types, helping developers reclaim storage space without affecting source code.
     id: homebrew/core/kondo
     tags: [development, file-management, rust]
+  - name: Local
+    desc: WordPress local development tool by Flywheel
+    homepage: https://localwp.com/
+    id: homebrew/cask/local
+    tags: [wordpress, development, productivity]
+    cask: true
+    info: >-
+      Local is a local WordPress development environment for Mac and Windows. It simplifies WordPress
+      development by providing an easy-to-use interface to create, test, and deploy WordPress sites
+      locally. It includes built-in tools for database management, file editing, and site publishing.
 - id: file-nav
   name: File Navigation & Search
   desc: Tools for searching, navigating, and exploring file systems and directories.
@@ -890,6 +900,16 @@ UpdatePrompt: |
   name: Git Tools
   desc: Git-specific utilities, extensions, and interfaces for enhanced Git workflows.
   packages:
+  - name: git
+    desc: Distributed version control system
+    homepage: https://git-scm.com
+    id: homebrew/core/git
+    tags: [version-control, command-line, scm]
+    license: GPL-2.0-only
+    info: >-
+      git is a free and open source distributed version control system designed to handle everything
+      from small to very large projects with speed and efficiency. It enables collaboration, code
+      review, and maintains complete project history locally.
   - name: ugit
     desc: Undo git commands. Your damage control git buddy
     homepage: https://bhupesh.me/undo-your-last-git-mistake-with-ugit/
@@ -1752,6 +1772,16 @@ UpdatePrompt: |
       language.
     id: homebrew/cask/openscad
     tags: [design, programming]
+  - name: Orca Slicer
+    desc: G-code generator for 3D printers
+    homepage: https://github.com/SoftFever/OrcaSlicer
+    id: homebrew/cask/orcaslicer
+    tags: [graphics, 3d-printing, design]
+    cask: true
+    info: >-
+      Orca Slicer is a G-code generator for 3D printers. It's a fork of Bambu Studio that provides
+      slicing functionality to convert 3D models into printable G-code. It supports various 3D printer
+      models and provides advanced slicing options for optimizing print quality.
   - name: Visual Paradigm
     desc: UML, SysML, BPMN modelling platform
     homepage: https://www.visual-paradigm.com/
@@ -1794,6 +1824,17 @@ UpdatePrompt: |
   name: Graphics & Image Tools
   desc: Image editors, screenshot and annotation tools, diagram editors, OCR and image utilities.
   packages:
+  - name: FontForge
+    desc: Font editor and converter for outline and bitmap fonts
+    homepage: https://fontforge.github.io/en-US/
+    id: homebrew/cask/fontforge-app
+    tags: [graphics, design, font-tools]
+    cask: true
+    license: BSD-3-Clause
+    info: >-
+      FontForge is a free, open-source font editor for outline and bitmap fonts. It lets you edit glyph
+      outlines and metrics, generate multiple font formats, and convert between font formats. Note: This
+      version is built for Intel macOS and requires Rosetta 2 on Apple Silicon.
   - name: draw.io Desktop
     desc: Online diagram software
     homepage: https://www.diagrams.net/
@@ -2013,6 +2054,26 @@ UpdatePrompt: |
   name: Office
   desc: Office suites applications for document creation and editing.
   packages:
+  - name: Adobe Acrobat Reader
+    desc: View, print, and comment on PDF documents
+    homepage: https://www.adobe.com/acrobat/pdf-reader.html
+    id: homebrew/cask/adobe-acrobat-reader
+    tags: [productivity, pdf, office]
+    cask: true
+    info: >-
+      Adobe Acrobat Reader is a free PDF viewer and editor. It allows you to view, print, comment on,
+      and share PDF documents. It's the most widely used PDF reader and provides essential tools for
+      working with PDF files across different platforms.
+  - name: TeamViewer
+    desc: Remote access and connectivity software focused on security
+    homepage: https://www.teamviewer.com/
+    id: homebrew/cask/teamviewer
+    tags: [remote-access, productivity, security]
+    cask: true
+    info: >-
+      TeamViewer is remote access and connectivity software that enables secure remote desktop access,
+      file transfer, and collaboration capabilities. It's widely used by IT professionals and support
+      teams for remote assistance and device management.
   - name: LibreOffice
     desc: Free cross-platform office suite, fresh version
     homepage: https://www.libreoffice.org/
