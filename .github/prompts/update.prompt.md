@@ -87,7 +87,7 @@ YAML nodes MUST follow this ordering and shape:
 
 ```yaml
 - name: string                           # required; display name
-   desc: string                           # required; one-line (<=120 chars)
+   desc: string                           # required; one-line summary from `brew info` command
    homepage: https://example.com          # required; canonical project URL
    id: homebrew/[core|cask]/formula-name  # required; normalized Homebrew id
    tags: [tag-a, tag-b, tag-c]            # required; 3–6 existing tags
@@ -105,7 +105,10 @@ Notes:
 Preconditions / Inputs
 ----------------------
 
-1. The command input is plaintext containing one or more `brew info` blocks.  
+1. The command input can be:
+   - **Preferred**: Plaintext from `brew info <package>` (compact, human-readable)
+   - **Supported**: JSON from `brew info --json=v2 <package>` (structured, parsing-safe)
+   The agent should auto-detect the format and parse accordingly.
 2. Optional $ARGUMENTS may include explicit category, tags, idempotency mode (`insert-only` vs `upsert`), or `visit_homepage: true`.
 
 Execution flow (strict, step-by-step)
@@ -123,43 +126,79 @@ Execution flow (strict, step-by-step)
    - If parsing fails for a specific optional field, set it to null or omit it in output (do NOT leave bracket tokens).
 
 3) Category selection (heuristic)
-   - Load `data/packages.yaml` and collect existing category ids, names, and tags.
+   - **Context optimization**: Extract only the list of unique category names and tag names from `data/packages.yaml` first. Do NOT load the entire file content into working memory unless needed for precedent search.
+   - Precedent Check (highest priority):
+     * For each package being categorized, search for 1-3 existing packages with:
+       - Overlapping tags (e.g., if new package has tag "3d-printing", search for existing packages with "3d" or "design")
+       - Similar name patterns (substring matches)
+       - Related functionality keywords
+     * If semantically similar packages found, prefer their category. Example: "Orca Slicer" shares "3d-printing" with "OpenSCAD" → assign to OpenSCAD's category (Media & Design)
+     * Mark confidence level: **HIGH**
    - Use this priority to choose category:
-     a) If user provided explicit category via $ARGUMENTS, use it (validate it exists; if not, warn).  
-     b) Apply deterministic keyword heuristics—match on formula name, description, and homepage contents. Examples:
-        | Signal                                               | Preferred category          | Suggested tags                     |
-        | ---------------------------------------------------- | --------------------------- | ---------------------------------- |
-        | Contains "cli", "command", "shell", "terminal"      | `command-line`              | `command-line`, `terminal`, `shell`|
-        | Mentions "library", "sdk", specific language names  | `development` or language-specific | `development`, `<language>` |
-        | Provides packaging or brew automation tooling        | `package-management`        | `packaging`, `automation`          |
-        | Desktop/macOS apps (GUI, productivity, browsers)     | `applications` or `browsers`| `productivity`, `macos`            |
-        | Networking/servers/cloud keywords                    | `networking` or `infrastructure` | `network`, `cloud`          |
-        | Documentation generators/static site tooling         | `documentation` or `web`    | `documentation`, `static-sites`    |
-       c) If no confident match (≤80%), assign `uncategorized` and set `REVIEW_REQUIRED`. Do NOT create new categories automatically; creation requires explicit human approval or a runtime `--allow-create` flag.
+     a) Existing package precedent → confidence: **HIGH** (semantically similar packages in same category)
+     b) User-provided explicit category via $ARGUMENTS → confidence: **HIGH**
+     c) Apply deterministic keyword heuristics—match on formula name, description, and homepage contents with expanded domain patterns → confidence: **MEDIUM**
+     d) If no strong match, assign `uncategorized` and set `review_required: true` with alternatives → confidence: **LOW**
+   - **EXPANDED HEURISTIC TABLE (new domain-specific patterns):**
+     | Signal                                                 | Preferred category          | Suggested tags                     |
+     | ------------------------------------------------------ | --------------------------- | ---------------------------------- |
+     | Contains "cli", "command", "shell", "terminal"         | `command-line`              | `command-line`, `terminal`, `shell`|
+     | Mentions "library", "sdk", specific language names     | `development` or language-specific | `development`, `<language>` |
+     | Provides packaging or brew automation tooling          | `package-management`        | `packaging`, `automation`          |
+     | Desktop/macOS apps (GUI, productivity, browsers)       | `applications` or `browsers`| `productivity`, `macos`            |
+     | Networking/servers/cloud keywords                      | `networking` or `infrastructure` | `network`, `cloud`          |
+     | Documentation generators/static site tooling           | `documentation` or `web`    | `documentation`, `static-sites`    |
+     | **3D modeling, CAD, slicing, design-focused tools**    | **`media` or `graphics`**   | **`design`, `3d`, `graphics`**     |
+     | **WordPress, Laravel, framework local dev environments** | **`devutil`**              | **`development`, `web`, `framework`** |
+     | **Remote desktop, screen sharing, connectivity**       | **`network` or `office`**   | **`remote-access`, `productivity`** |
+     | **PDF viewing, document management, office tools**     | **`office`**               | **`productivity`, `pdf`, `office`** |
+   - Do NOT create new categories automatically; creation requires explicit human approval or a runtime `--allow-create` flag.
 
 Resolution & application loop (explicit)
 ---------------------------------------
 
-- After generating the `{{ACTION}}` block, do a pass for `REVIEW_REQUIRED` flags:
-   - If any entries are `REVIEW_REQUIRED`, summarise each open question (why it's ambiguous and the suggested alternatives) and pause execution. The agent MUST wait for explicit human confirmation specifying either:
-      * `approve <entry-id> <chosen-category> [<tags>]` to resolve that entry, or
-      * `reject <entry-id>` to skip it, or
-      * `edit <entry-id>` with a modified payload.
-   - Only once all `REVIEW_REQUIRED` entries are resolved by explicit responses should the agent proceed to apply changes.
+- **Always generate the complete `{{ACTION}}` block**, regardless of confidence level. For ambiguous entries, use `review_required: true` in the operation metadata.
 
-- If there are no `REVIEW_REQUIRED` entries (confidence high for all), the agent SHOULD apply the inserts/updates directly to `data/packages.yaml`. When applying changes the agent MUST:
-   - Write the updated `data/packages.yaml` file contents (do not perform git commits or pushes).
-   - Include the resulting unified diff (or the exact changed YAML nodes) inside the `{{ACTION}}` block so humans and automation can review the applied edits.
-   - Still emit the `{{REPORT}}` and `{{COMMIT}}` sections: the latter is a suggested commit message that a human or CI may use to commit the changes.
+- Operation status handling:
+   - **HIGH confidence entries**: Set `review_required: false` (or omit). These are ready to apply.
+   - **MEDIUM/LOW confidence entries**: Set `review_required: true` and include:
+     * `confidence: MEDIUM` or `confidence: LOW`
+     * `alternatives: [...]` with 2-3 ranked options
+     * `rationale: "..."` explaining the ambiguity
+     * Format: `Primary → Development Utilities (HIGH), Alternative → macOS Enhancements (MEDIUM), Alternative → Office (LOW)`
+
+- Application behavior:
+   - If ALL entries have `review_required: false` (or omitted), the agent SHOULD apply changes directly to `data/packages.yaml`:
+     * Write the updated file contents (do not perform git commits or pushes)
+     * Include the resulting unified diff in the `{{ACTION}}` block
+   - If ANY entry has `review_required: true`, the agent SHOULD:
+     * Still generate the full `{{ACTION}}` block with proposed YAML
+     * Apply ONLY the HIGH confidence entries to `data/packages.yaml`
+     * List the entries needing review in a summary after the `{{REPORT}}` section
+     * Wait for user response: `approve <name> <category>`, `reject <name>`, or `edit <name>`
 
 - Do not perform git operations (commit/push); only write files locally and surface diffs. This preserves auditability and adheres to repository safety rules.
 
 4) Tag assignment
    - Prefer tags already used in the repository. Map common keywords to tags (e.g. "documentation" -> `documentation`, "shell" -> `command-line`/`terminal`, "fish" -> `shell`, "bash" -> `shell`, "cli" -> `command-line`, "dev" -> `development`).  
-      - Limit tags to a sensible number (3–6). Avoid inventing new tags unless necessary; if no existing tags fit, add a single `uncategorized` tag and flag `REVIEW_REQUIRED` so a maintainer can refine tags later.
+   - Confidence levels for Tags:
+     * **HIGH confidence** (auto-assign):
+       - Tag already exists in repository
+       - Tag is semantic variant of existing tag (e.g., "cli" → "command-line") with remap note
+     * **MEDIUM confidence** (auto-assign with note):
+       - Tag is new but semantically clear from domain context
+     * **LOW confidence** (flag for review):
+       - Tag is ambiguous or unclear → set `review_required: true` with alternatives
+     * Limit tags to a sensible number (3–6). 
+     * If any tag has LOW confidence, include `review_required: true` with alternatives and rationale.
+   - Avoid inventing entirely new tags; if no existing tags fit and all candidates are LOW confidence, add a single `uncategorized` tag and flag `review_required: true` so a maintainer can refine tags later.
 
 5) Duplicate detection and idempotency
    - Search `data/packages.yaml` for an existing entry by `id` if available, otherwise by `name` (case-insensitive).  
+   - Category Schema Validation
+     * Before assignment, verify the category exists in `data/packages.yaml`
+     * If assigned category doesn't exist → flag `REVIEW_REQUIRED` with top 3 alternatives by semantic relevance
+     * If assigned category's description doesn't semantically align with package purpose (e.g., "WordPress dev tool" in "Office" category) → flag with explanation and alternatives
    - If found:
      * If `mode=insert-only` → report "exists, skipped".  
      * Otherwise `upsert` mode: compute a minimal patch that updates only changed fields (homepage, info/desc, tags, id, license). Preserve existing `id` when present.
@@ -175,6 +214,20 @@ Resolution & application loop (explicit)
      - `cask`: true when it's a cask (omit when false)
      - `license`: SPDX identifier when available
    - Keep ordering of keys consistent with repository examples (look at neighboring entries in the chosen category).
+   - Include metadata in ACTION block for context:
+     * When inserting, include `similar_existing` field with 1-3 similar packages already in that category (for reviewer context)
+     * Example metadata:
+       ```yaml
+       - op: insert
+         category: media
+         similar_existing:
+           - name: OpenSCAD
+             tags: [design, programming]
+             reason: "Both are 3D CAD/modeling tools"
+         payload: |
+           - name: Orca Slicer
+             ...
+       ```
 
 7) Validation
    - Ensure generated YAML is syntactically valid (no tab characters for indentation, consistent 2-space indent, proper quoting when needed).  
@@ -194,7 +247,15 @@ Resolution & application loop (explicit)
 9) Final output sections (exact order)
    - A compact machine-readable YAML action block labelled: `{{ACTION}}` containing operations to apply (insert/update/skip) with file path `data/packages.yaml` and the exact YAML fragment(s). This block MUST be valid YAML and parsable programmatically.
    - A human-friendly Sync Impact Report (as above).  
-   - A suggested commit message and recommended PR description bullet points.
+   - A suggested commit message **displayed directly in chat** (ready for copy-paste) with these rules:
+     * **Format**: `add: <pkg1>, <pkg2>, ... packages` (list only package names, not versions)
+     * **Content**: List only `- Add <name> to <category> for <one-line purpose>`
+     * **EXCLUDE**: Version numbers (not stored in packages.yaml)
+     * **EXCLUDE**: Skip/rejection reasons (not relevant to commit)
+     * **EXCLUDE**: Process notes (conventions followed, implementation details)
+     * **Delivery**: Present as a code block in the response for easy copy-paste. Do NOT create temporary files.
+     * Example GOOD: `add: git, Local packages\n- Add git to Git Tools for version control\n- Add Local to Development Utilities for WordPress development`
+     * Example BAD: `add: git (v2.52.0), Local (v9.2.9) packages\nSkip: container already exists\nAll packages follow conventions`
 
 10) Post-steps and safety
    - Homepage-first rule (REQUIRED for NEW packages): For any package not already present in `data/packages.yaml`, the agent MUST attempt to visit the `homepage` URL and extract a short, authoritative description to populate `info`. If the `homepage` field is missing in the input block, the agent MUST perform a web search to find an authoritative homepage (prefer the `formulae.brew.sh` API, the Homebrew formula page, the project's official site, or the GitHub repository).
@@ -238,11 +299,12 @@ Example INSERT for `fisher` (Fish plugin manager):
 Agent response rules (must follow exactly)
 ----------------------------------------
 
-1. Always produce the three output sections in order: `{{ACTION}}` (machine), `{{REPORT}}` (human), `{{COMMIT}}` (suggested commit message).  
-2. The `{{ACTION}}` block must contain a list of operations with explicit `op: insert|update|skip`, `path: data/packages.yaml`, `category: <id>`, and `payload: <yaml-node>`.
-3. If any ambiguous choices were made, include `REVIEW_REQUIRED` next to the operation and provide alternatives.
+1. Always produce the three output sections in order: `{{ACTION}}` (machine), `{{REPORT}}` (human), `{{COMMIT}}` (suggested commit message in chat).  
+2. The `{{ACTION}}` block must contain a list of operations with explicit `op: insert|update|skip`, `path: data/packages.yaml`, `category: <id>`, `confidence: HIGH|MEDIUM|LOW`, `review_required: true|false`, and `payload: <yaml-node>`.
+3. If any ambiguous choices were made, set `review_required: true` in the operation and provide `alternatives: [...]` with confidence levels (HIGH/MEDIUM/LOW) and rationale.
 4. If the input is empty or unparsable, respond with a clear, actionable error and a short example of expected input.
 5. Limit the total size of the YAML fragments to what would be reasonably included in a single PR (no more than ~100 new entries at once). If more, split into multiple batches and request confirmation.
+6. **Do NOT create temporary files** for documentation, summaries, or commit messages. All output should be presented directly in the chat response.
 
 Security & Privacy
 ------------------
@@ -255,7 +317,8 @@ Notes for implementers / integrators
 ----------------------------------
 
 - This prompt is designed to be idempotent and programmatic-friendly; CI or a bot can run an agent with this prompt and apply the `{{ACTION}}` block automatically after human review.
-- The agent should be tolerant of slightly different `brew info` formats (old/new). Use regexes to extract values robustly.
-- Keep match heuristics conservative to avoid miscategorization; prefer `REVIEW_REQUIRED` when confidence < 80%.
+- The agent should be tolerant of slightly different `brew info` formats (old/new, text/JSON). Use robust parsing for both formats.
+- Keep match heuristics conservative to avoid miscategorization; prefer `review_required: true` when confidence is MEDIUM or LOW.
+- Input format detection: The agent should auto-detect JSON (starts with `[` or `{`) vs plaintext (contains `==>`) and parse accordingly.
 
 End of prompt.
