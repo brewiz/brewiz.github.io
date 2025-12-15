@@ -1723,6 +1723,39 @@ UpdatePrompt: |
       macOS.
     id: homebrew/cask/xquartz
     tags: [graphics]
+  - name: Hazel
+    desc: Automated organisation
+    homepage: https://www.noodlesoft.com/
+    cask: true
+    info: >-
+      Hazel watches folders you choose and automatically moves, renames, tags, archives, or deletes files
+      based on rules you define, keeping downloads, documents, and other directories tidy without
+      manual work. It can run workflows, upload files, and clean up application support files via App Sweep
+      while also integrating with Shortcuts, Automator, and AppleScript for richer automations.
+    id: homebrew/cask/hazel
+    tags: [macos, automation, productivity, file-management]
+  - name: Hidden Bar
+    desc: Utility to hide menu bar items
+    homepage: https://github.com/dwarvesf/hidden/
+    cask: true
+    info: >-
+      Hidden Bar adds a chevron icon to the macOS menu bar so you can hide or reveal menu extras on demand,
+      keeping the top of your screen uncluttered while still letting you access background apps. Drag menu
+      icons into the hidden zone, click the arrow to stash them, and click again to show them exactly when
+      you need them.
+    id: homebrew/cask/hiddenbar
+    tags: [macos, productivity, utility, window-management]
+  - name: OnyX
+    desc: Verify system files structure, run miscellaneous maintenance and more
+    homepage: https://www.titanium-software.fr/en/onyx.html
+    cask: true
+    info: >-
+      OnyX is a multifunction maintenance utility that verifies system files, cleans caches, rebuilds
+      indexes, and adjusts Finder, Dock, Safari, and other Apple app settings through a graphical interface.
+      It exposes scripts for maintenance, cleaning, and rebuilding databases so you can safely repair,
+      optimize, and customize macOS without diving into Terminal commands.
+    id: homebrew/cask/onyx
+    tags: [macos, system, diagnostics, utility]
 - id: media
   name: Media & Design
   desc: Tools for graphic design, illustration, diagramming, and 3D modeling.
