@@ -832,6 +832,17 @@ UpdatePrompt: |
       Note: Requires a kernel extension to work. See vendor documentation for details.
     id: homebrew/cask/openzfs
     tags: [file-system, storage, utility]
+  - name: coreutils
+    desc: GNU File, Shell, and Text utilities
+    homepage: https://www.gnu.org/software/coreutils/
+    id: homebrew/core/coreutils
+    tags: [command-line, file-management, system]
+    license: GPL-3.0-or-later
+    info: >-
+      GNU Coreutils is a collection of basic file, shell, and text utilities for Unix-like systems,
+      providing commands such as ls, cp, mv, rm, sort, cut, and more. On macOS these tools are installed
+      with a 'g' prefix (e.g., gls); you can add the package's gnubin directory to your PATH to use the
+      standard (unprefixed) command names.
 - id: fonts
   name: Fonts
   desc: Typography and font packages for coding and document preparation.
@@ -1854,6 +1865,16 @@ UpdatePrompt: |
       Formula: https://github.com/Homebrew/homebrew-cask/blob/HEAD/Casks/c/colorpicker-materialdesign.rb
     id: homebrew/cask/colorpicker-materialdesign
     tags: [design, macos, utility]
+  - name: Autodesk Fusion 360
+    desc: Integrated CAD, CAM, CAE, and PCB software
+    homepage: https://www.autodesk.com/products/fusion-360/overview
+    cask: true
+    id: homebrew/cask/autodesk-fusion
+    tags: [graphics, design]
+    info: >-
+      Autodesk Fusion 360 is an integrated CAD, CAM, CAE, and PCB tool for product design and manufacturing.
+      It offers parametric modeling, CAM toolpath generation, simulation, and collaboration features for
+      mechanical and electronics design workflows.
 - id: graphics
   name: Graphics & Image Tools
   desc: Image editors, screenshot and annotation tools, diagram editors, OCR and image utilities.
@@ -1928,6 +1949,16 @@ UpdatePrompt: |
     info: >-
       Flameshot is a screenshot tool with built-in annotation features. Note: this cask is marked deprecated in Homebrew and scheduled to be disabled on 2026-09-01. (source: https://flameshot.org/)
     tags: [graphics, screenshot, productivity]
+  - name: ImageMagick
+    desc: Tools and libraries to manipulate images in many formats
+    homepage: https://imagemagick.org/index.php
+    id: homebrew/core/imagemagick
+    tags: [graphics, conversion, command-line]
+    license: ImageMagick
+    info: >-
+      ImageMagick is a suite of command-line tools and libraries to read, write, and manipulate images
+      in a wide range of formats. It supports common operations like resizing, compositing, format conversion,
+      and image transformations useful for scripting and batch image processing.
 - id: network
   name: Network Tools
   desc: Utilities for network diagnostics, communication, and connection management.
@@ -2032,17 +2063,18 @@ UpdatePrompt: |
       configuration.
     id: homebrew/core/sshuttle
     tags: [network, ssh, proxy]
-  - name: tailscale
-    desc: Easiest, most secure way to use WireGuard and 2FA
+  - name: Tailscale
+    desc: Mesh VPN based on WireGuard
     homepage: https://tailscale.com
+    cask: true
+    id: homebrew/cask/tailscale-app
+    tags: [network, security, macos]
     info: >-
-      Tailscale builds a secure mesh VPN using WireGuard to connect your devices with minimal
-      configuration. It provides zero‑config networking, optional two‑factor authentication, and
-      easy device and access management across platforms. Useful for private networking, remote access,
-      and securely exposing services between machines.
-    id: homebrew/core/tailscale
-    tags: [network, security, command-line]
-    license: BSD-3-Clause
+      Tailscale provides a secure mesh VPN built on WireGuard that connects your devices with minimal
+      configuration. The macOS app includes a native GUI for device and access management and leverages
+      platform networking features; it may require enabling a kernel extension or system permission
+      during setup. Typical uses include secure remote access, private networking between devices, and
+      exposing services safely across an individual's machines.
   - name: wget
     desc: Internet file retriever
     homepage: https://www.gnu.org/software/wget/
