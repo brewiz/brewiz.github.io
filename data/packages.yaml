@@ -648,7 +648,7 @@ UpdatePrompt: |
     homepage: https://github.com/github/spec-kit
     id: homebrew/core/specify
     license: MIT
-    tags: [development, testing, python]
+    tags: [development, testing, python, ai]
     info: >-
       Specify is a toolkit designed to help you get started with Spec-Driven Development. It provides
       opinionated tooling and templates to scaffold and run specifications, with integrations for
