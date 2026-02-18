@@ -15,7 +15,14 @@ class PackageBeautifier
   def beautify
     # Load YAML data with error handling
     begin
-      data = YAML.load_file(@input_file)
+      # Load all documents from the YAML stream
+      docs = YAML.load_stream(File.read(@input_file))
+      # Find the document that contains the categories array
+      data = docs.find { |d| d.is_a?(Array) }
+      unless data
+        puts "Error: Could not find categories array in '#{@input_file}'"
+        exit 1
+      end
     rescue Errno::ENOENT
       puts "Error: Input file '#{@input_file}' not found."
       exit 1
