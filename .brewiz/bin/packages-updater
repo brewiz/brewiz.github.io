@@ -48,7 +48,7 @@ def read_action_block
   content = content.sub(/^{{ACTION}}\s*/, '')
 
   begin
-    parsed = YAML.safe_load(content, [Date, Time])
+    parsed = YAML.safe_load(content, permitted_classes: [Date, Time])
   rescue Psych::SyntaxError => e
     abort "Failed to parse ACTION payload as YAML: #{e.message}"
   end
