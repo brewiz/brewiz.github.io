@@ -634,6 +634,14 @@ UpdatePrompt: |
       models to process and understand.
     id: homebrew/core/repomix
     tags: [development, ai, command-line]
+  - name: ruby-lsp
+    desc: Opinionated language server for Ruby
+    homepage: https://shopify.github.io/ruby-lsp
+    info: >-
+      Ruby LSP is an opinionated language server for Ruby that provides IDE features like autocomplete,
+      go-to-definition, and linting. It's designed to work with any editor that supports the Language
+      Server Protocol.
+    id: homebrew/core/ruby-lsp
   - name: cargo-generate
     desc: Use pre-existing git repositories as templates
     homepage: https://github.com/cargo-generate/cargo-generate
