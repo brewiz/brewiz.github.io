@@ -1,3 +1,5 @@
+import { packageDisplayName } from "../utils/packageUtils";
+
 export function PackageCard(props) {
   const isMarkedForUninstall = () => props.pkg.installed && props.selected;
 
@@ -18,7 +20,7 @@ export function PackageCard(props) {
     >
       <div class="flex items-center justify-between">
         <div class="flex items-center gap-2">
-          <h3 class="text-lg font-semibold">{props.pkg.name}</h3>
+          <h3 class="text-lg font-semibold">{packageDisplayName(props.pkg)}</h3>
           {props.pkg.recommended && (
             <span class="text-yellow-500" title="Recommended">
               <svg
@@ -113,7 +115,7 @@ export function PackageCard(props) {
           )}
         </div>
       </div>
-      <p class="text-gray-600 mt-2 text-sm flex-grow">{props.pkg.desc}</p>
+      <p class="text-gray-600 mt-2 text-sm flex-grow">{props.pkg.desc || props.pkg.id}</p>
 
       {/* Tags section */}
       {props.pkg.tags && props.pkg.tags.length > 0 && (

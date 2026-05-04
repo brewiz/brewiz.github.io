@@ -1,4 +1,5 @@
 import { createSignal } from "solid-js";
+import { packageKey } from "../utils/packageUtils";
 
 export function usePackageStore() {
   const [selectedPackages, setSelectedPackages] = createSignal(new Set());
@@ -98,10 +99,12 @@ export function usePackageStore() {
 
   const togglePackage = (pkg) => {
     const newSelected = new Set(selectedPackages());
-    if (newSelected.has(pkg.name)) {
-      newSelected.delete(pkg.name);
+    const key = packageKey(pkg);
+
+    if (newSelected.has(key)) {
+      newSelected.delete(key);
     } else {
-      newSelected.add(pkg.name);
+      newSelected.add(key);
     }
     setSelectedPackages(newSelected);
   };

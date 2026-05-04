@@ -4,6 +4,7 @@ import { useSearchStore } from "../stores/searchStore";
 import { Header } from "./Header";
 import { PackageList } from "./PackageList";
 import { BrewCommands } from "./BrewCommands";
+import { packageSearchText } from "../utils/packageUtils";
 
 function App() {
   const { 
@@ -91,8 +92,7 @@ function App() {
       filtered = filtered.map(category => ({
         ...category,
         packages: category.packages.filter(pkg =>
-          pkg.name.toLowerCase().includes(search) ||
-          (pkg.desc && pkg.desc.toLowerCase().includes(search))
+          packageSearchText(pkg).includes(search)
         )
       }));
     }

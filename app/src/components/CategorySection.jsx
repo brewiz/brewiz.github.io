@@ -1,5 +1,6 @@
 import { createSignal, For } from "solid-js";
 import { PackageCard } from "./PackageCard";
+import { packageKey } from "../utils/packageUtils";
 
 export function CategorySection(props) {
   const [isExpanded, setIsExpanded] = createSignal(true);
@@ -23,7 +24,7 @@ export function CategorySection(props) {
               {(pkg) => (
                 <PackageCard
                   pkg={pkg}
-                  selected={props.selectedPackages.has(pkg.name)}
+                  selected={props.selectedPackages.has(packageKey(pkg))}
                   onToggle={() => props.onPackageToggle(pkg)}
                   selectedTags={props.selectedTags}
                   onTagClick={props.onTagClick}

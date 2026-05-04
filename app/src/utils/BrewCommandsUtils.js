@@ -1,7 +1,9 @@
+import { brewPackageArgument, packageKey } from "./packageUtils";
+
 export function generateBrewCommands(categories, selectedPackages, outdatedPackages) {
   const allPackages = categories.flatMap((c) => c.packages);
   const selectedPkgs = Array.from(selectedPackages)
-    .map((name) => allPackages.find((p) => p.name === name))
+    .map((key) => allPackages.find((p) => packageKey(p) === key))
     .filter(Boolean);
   const commands = [];
 
@@ -30,16 +32,12 @@ function addInstallCommands(commands, selectedPkgs) {
 
   const installCasks = toInstall
     .filter((p) => p.cask)
-    .map((p) => {
-      return p.tap ? `${p.tap}/${p.token}` : p.token;
-    })
+    .map(brewPackageArgument)
     .sort();
 
   const installFormulas = toInstall
     .filter((p) => !p.cask)
-    .map((p) => {
-      return p.tap ? `${p.tap}/${p.name}` : p.name;
-    })
+    .map(brewPackageArgument)
     .sort();
 
   if (installFormulas.length) {
@@ -56,16 +54,12 @@ function addUninstallCommands(commands, selectedPkgs) {
 
   const uninstallCasks = toUninstall
   .filter((p) => p.cask)
-  .map((p) => {
-    return p.tap ? `${p.tap}/${p.token}` : p.token;
-  })
+  .map(brewPackageArgument)
   .sort();
 
   const uninstallFormulae = toUninstall
   .filter((p) => !p.cask)
-  .map((p) => {
-    return p.tap ? `${p.tap}/${p.name}` : p.name;
-  })
+  .map(brewPackageArgument)
   .sort();
 
   if (uninstallFormulae.length) {
