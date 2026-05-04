@@ -36,9 +36,16 @@ class Command
     {
       port: 8047,
       address: 'localhost',
-      packages_yaml: 'https://brewiz.github.io/data/packages.yaml',
+      packages_yaml: default_packages_yaml,
       app_url: "https://github.com/brewiz/brewiz.github.io/raw/refs/tags/v#{VERSION}/app/dist",
     }
+  end
+
+  def default_packages_yaml
+    local_packages_yaml = File.expand_path('data/packages.yaml', Dir.pwd)
+    return local_packages_yaml if File.file?(local_packages_yaml)
+
+    'https://brewiz.github.io/data/packages.yaml'
   end
 
   def parse_options(args)
