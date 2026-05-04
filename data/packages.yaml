@@ -57,6 +57,24 @@ UpdatePrompt: |
   name: AI & Machine Learning
   desc: Tools for artificial intelligence, machine learning, and large language models.
   packages:
+  - name: Claude Code
+    desc: Terminal-based AI coding assistant
+    homepage: https://www.anthropic.com/claude-code
+    cask: true
+    info: >-
+      Claude Code is Anthropic's terminal-based AI coding assistant. It helps developers inspect code,
+      edit files, run commands, and automate development workflows from the command line.
+    id: homebrew/cask/claude-code
+    tags: [ai, command-line, development]
+  - name: Codex
+    desc: OpenAI's coding agent that runs in your terminal
+    homepage: https://github.com/openai/codex
+    cask: true
+    info: >-
+      Codex is OpenAI's terminal-based coding agent. It can help explore codebases, make edits, run
+      checks, and support software development workflows directly from the command line.
+    id: homebrew/cask/codex
+    tags: [ai, command-line, development]
   - name: llm
     desc: Access large language models from the command-line
     homepage: https://llm.datasette.io/
@@ -75,6 +93,14 @@ UpdatePrompt: |
       models.
     id: homebrew/core/ollama
     tags: [ai]
+  - name: opencode
+    desc: AI coding agent, built for the terminal
+    homepage: https://opencode.ai
+    info: >-
+      opencode is a terminal-first AI coding agent for working with codebases. It provides an interactive
+      command-line workflow for AI-assisted code exploration, editing, and development automation.
+    id: homebrew/core/opencode
+    tags: [ai, command-line, development]
   - name: tgpt
     desc: AI Chatbots in terminal without needing API keys
     homepage: https://github.com/aandrew-me/tgpt
@@ -244,6 +270,14 @@ UpdatePrompt: |
   name: Cloud & DevOps
   desc: Tools for cloud infrastructure, deployment automation, and DevOps workflows.
   packages:
+  - name: act
+    desc: Run your GitHub Actions locally
+    homepage: https://github.com/nektos/act
+    info: >-
+      act runs GitHub Actions workflows locally by reading workflow files and executing jobs in
+      containers. It is useful for testing CI changes before pushing them to GitHub.
+    id: homebrew/core/act
+    tags: [cloud, automation, testing]
   - name: ansible
     desc: Automate deployment, configuration, and upgrading
     homepage: https://www.ansible.com/
@@ -290,6 +324,14 @@ UpdatePrompt: |
       code by enforcing style guidelines and detecting potential issues.
     id: crystal-ameba/ameba/ameba
     tags: [code-analysis, testing]
+  - name: biome
+    desc: Toolchain of the web
+    homepage: https://biomejs.dev/
+    info: >-
+      Biome is a fast web development toolchain that combines formatting, linting, and code quality
+      checks for JavaScript, TypeScript, JSON, CSS, and related frontend project files.
+    id: homebrew/core/biome
+    tags: [code-analysis, testing, javascript]
   - name: isort
     desc: Sort Python imports automatically
     homepage: https://pycqa.github.io/isort/
@@ -299,6 +341,14 @@ UpdatePrompt: |
       readability.
     id: homebrew/core/isort
     tags: [code-analysis, python, testing]
+  - name: oxfmt
+    desc: High-performance formatting tool for JavaScript and TypeScript
+    homepage: https://oxc.rs/
+    info: >-
+      oxfmt is a high-performance code formatter from the Oxc toolchain. It focuses on fast, consistent
+      formatting for JavaScript and TypeScript projects.
+    id: homebrew/core/oxfmt
+    tags: [code-analysis, testing, javascript]
   - name: scc
     desc: Fast and accurate code counter with complexity and COCOMO estimates
     homepage: https://github.com/boyter/scc/
@@ -308,6 +358,14 @@ UpdatePrompt: |
       complexity.
     id: homebrew/core/scc
     tags: [code-analysis]
+  - name: semgrep
+    desc: Easily detect and prevent bugs and anti-patterns in your codebase
+    homepage: https://semgrep.dev
+    info: >-
+      Semgrep is a static analysis tool for finding bugs, security issues, and code anti-patterns across
+      many programming languages. It supports custom rules and CI-friendly scanning workflows.
+    id: homebrew/core/semgrep
+    tags: [code-analysis, testing, security]
   - name: shellcheck
     desc: Static analysis and lint tool, for (ba)sh scripts
     homepage: https://www.shellcheck.net/
@@ -533,6 +591,14 @@ UpdatePrompt: |
       manipulation.
     id: homebrew/core/yq
     tags: [data, json, command-line]
+  - name: libucl
+    desc: Universal configuration library parser
+    homepage: https://github.com/vstakhov/libucl
+    info: >-
+      libucl is a universal configuration language parser and library. It supports structured
+      configuration data with JSON-like syntax, macros, includes, validation, and multiple output formats.
+    id: homebrew/core/libucl
+    tags: [data, json, development]
   - name: dolt
     desc: Git for Data – SQL database with Git-style versioning
     homepage: https://github.com/dolthub/dolt
@@ -625,6 +691,14 @@ UpdatePrompt: |
       developers create grammar parsers for programming languages.
     id: homebrew/core/tree-sitter-cli
     tags: [development, programming, command-line]
+  - name: vite
+    desc: Next generation frontend tooling. It's fast!
+    homepage: https://vitejs.dev/
+    info: >-
+      Vite is a fast frontend build tool and development server for modern web projects. It provides
+      instant dev server startup, hot module replacement, and optimized production builds.
+    id: homebrew/core/vite
+    tags: [build, javascript, development]
   - name: repomix
     desc: Pack repository contents into a single AI-friendly file
     homepage: https://github.com/yamadashy/repomix
@@ -1474,6 +1548,14 @@ UpdatePrompt: |
       support for concurrent programming with goroutines and channels.
     id: homebrew/core/go
     tags: [programming-language, runtime, development]
+  - name: erlang
+    desc: Programming language for highly scalable real-time systems
+    homepage: https://www.erlang.org/
+    info: >-
+      Erlang is a programming language and runtime designed for highly available, distributed, and
+      fault-tolerant systems. It is widely used for telecom, messaging, and concurrent server software.
+    id: homebrew/core/erlang
+    tags: [programming-language, runtime, development]
   - name: ipython
     desc: Interactive computing in Python
     homepage: https://ipython.org/
@@ -1483,6 +1565,14 @@ UpdatePrompt: |
       scientific computing.
     id: homebrew/core/ipython
     tags: [python, interactive, terminal]
+  - name: julia
+    desc: Fast, Dynamic Programming Language
+    homepage: https://julialang.org/
+    info: >-
+      Julia is a high-level, high-performance dynamic programming language for technical computing. It is
+      especially strong for numerical work, data science, scientific computing, and interactive research.
+    id: homebrew/core/julia
+    tags: [programming-language, development, runtime]
   - name: jruby
     desc: Ruby implementation in pure Java
     homepage: https://www.jruby.org/
@@ -1523,6 +1613,23 @@ UpdatePrompt: |
       dependencies for Lua projects easily.
     id: homebrew/core/luarocks
     tags: [lua, package-manager]
+  - name: GraalVM Java Development Kit
+    desc: GraalVM from Oracle
+    homepage: https://www.graalvm.org/
+    cask: true
+    info: >-
+      GraalVM Java Development Kit is Oracle's GraalVM distribution for Java development. It includes a
+      JDK with GraalVM technologies for high-performance JVM workloads and native image workflows.
+    id: homebrew/cask/graalvm-jdk
+    tags: [java, development, programming-language]
+  - name: node
+    desc: Open-source, cross-platform JavaScript runtime environment
+    homepage: https://nodejs.org/
+    info: >-
+      Node.js is an open-source JavaScript runtime built on Chrome's V8 engine. It is used for server-side
+      JavaScript, command-line tools, package scripts, and frontend build ecosystems.
+    id: homebrew/core/node
+    tags: [javascript, runtime, development]
   - name: openjdk@21
     desc: Development kit for the Java programming language
     homepage: https://openjdk.java.net/
@@ -1573,6 +1680,14 @@ UpdatePrompt: |
       productivity when working with Ruby.
     id: homebrew/core/solargraph
     tags: [ruby, ide, development]
+  - name: typescript
+    desc: Language for application scale JavaScript development
+    homepage: https://www.typescriptlang.org/
+    info: >-
+      TypeScript is a typed superset of JavaScript that compiles to plain JavaScript. It adds static
+      typing, editor tooling, and language features for large-scale application development.
+    id: homebrew/core/typescript
+    tags: [javascript, programming-language, development]
   - name: uv
     desc: Extremely fast Python package installer and resolver, written in Rust
     homepage: https://docs.astral.sh/uv/
@@ -1592,6 +1707,14 @@ UpdatePrompt: |
       syntax similar to C# and Java.
     id: homebrew/core/vala
     tags: [programming-language, development]
+  - name: zig
+    desc: Programming language designed for robustness, optimality, and clarity
+    homepage: https://ziglang.org/
+    info: >-
+      Zig is a systems programming language focused on robustness, optimality, and clarity. It provides
+      manual memory control, cross-compilation support, and a modern toolchain for low-level software.
+    id: homebrew/core/zig
+    tags: [programming-language, compiler, development]
 - id: macos
   name: macOS Enhancements
   desc: Tools and utilities that enhance the macOS experience and provide additional functionality.
@@ -1856,6 +1979,14 @@ UpdatePrompt: |
       format without requiring additional codecs.
     id: homebrew/cask/vlc
     tags: [media, video]
+  - name: yt-dlp
+    desc: Feature-rich command-line audio/video downloader
+    homepage: https://github.com/yt-dlp/yt-dlp
+    info: >-
+      yt-dlp is a feature-rich command-line audio and video downloader. It supports many video sites,
+      format selection, playlist handling, metadata extraction, and post-processing workflows.
+    id: homebrew/core/yt-dlp
+    tags: [media, video, command-line]
   - name: colorpicker-materialdesign
     desc: Colour picker
     homepage: https://github.com/CodeCatalyst/MaterialDesignColorPicker
@@ -2222,6 +2353,14 @@ UpdatePrompt: |
       useful for sharing Wi-Fi passwords, URLs, or other data that can be scanned by smartphones.
     id: homebrew/core/qrencode
     tags: [command-line, automation]
+  - name: qrtool
+    desc: Utility for encoding or decoding QR code
+    homepage: https://sorairolake.github.io/qrtool/book/index.html
+    info: >-
+      qrtool is a command-line utility for encoding and decoding QR codes. It is useful for creating QR
+      codes from text or extracting data from QR code images during automation and testing.
+    id: homebrew/core/qrtool
+    tags: [command-line, automation]
   - name: showcert
     desc: X.509 TLS certificate reader and creator
     homepage: https://github.com/yaroslaff/showcert
@@ -2431,6 +2570,14 @@ UpdatePrompt: |
       and session management. It's built on top of screen or tmux for improved usability.
     id: homebrew/core/byobu
     tags: [terminal]
+  - name: bundler-completion
+    desc: Bash completion for Bundler
+    homepage: https://github.com/mernen/completion-ruby
+    info: >-
+      bundler-completion provides shell completion definitions for Bundler commands. It improves terminal
+      ergonomics by completing Bundler subcommands, options, and related Ruby project workflows.
+    id: homebrew/core/bundler-completion
+    tags: [terminal, shell, command-line]
   - name: fish
     desc: User-friendly command-line shell for UNIX-like operating systems
     homepage: https://fishshell.com
