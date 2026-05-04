@@ -813,6 +813,10 @@ UpdatePrompt: |
     tags: [programming-language, development, runtime, scripting]
     info: >-
       Ruby is a dynamic, open-source programming language with a focus on simplicity and productivity. It has an elegant syntax that is natural to read and easy to write, making it popular for web development.
+  - id: homebrew/core/ruby-lsp
+    tags: [ruby, ide, development]
+    info: >-
+      Ruby LSP is an opinionated language server for Ruby. It provides editor features such as code completion, diagnostics, document symbols, formatting support, and navigation for Ruby projects.
   - id: homebrew/core/rustup
     tags: [rust, compiler, development]
     info: >-
