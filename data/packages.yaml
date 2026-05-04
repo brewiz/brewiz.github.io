@@ -370,7 +370,7 @@ UpdatePrompt: |
     info: >-
       cargo-generate is a tool that uses pre-existing Git repositories as templates to bootstrap new Rust projects. It allows developers to quickly create new projects based on established patterns and structures, supporting variable substitution and customization during project generation.
   - id: homebrew/core/specify
-    tags: [development, testing, python]
+    tags: [development, testing, python, ai]
     info: >-
       Specify is a toolkit designed to help you get started with Spec-Driven Development. It provides opinionated tooling and templates to scaffold and run specifications, with integrations for Python-based workflows (requires python@3.13).
   - id: homebrew/core/kondo
