@@ -7,7 +7,14 @@ export function packageKey(pkg) {
 }
 
 export function packageDisplayName(pkg) {
-  return (pkg?.name || packageToken(pkg) || pkg?.id || "").toString();
+  const name = (pkg?.name || packageToken(pkg) || pkg?.id || "").toString();
+  const token = packageToken(pkg);
+
+  if (token.includes("@") && name !== token && !name.includes(token)) {
+    return `${name} (${token})`;
+  }
+
+  return name;
 }
 
 export function packageSearchText(pkg) {
