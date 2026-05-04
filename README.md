@@ -1,6 +1,6 @@
 # Brewiz - Homebrew Package Wizard
 
-[![Version](https://img.shields.io/badge/version-0.9.15-blue.svg)](https://github.com/wstein/brewiz/tree/v0.9.15)
+[![Version](https://img.shields.io/badge/version-0.9.16-blue.svg)](https://github.com/brewiz/brewiz.github.io/tree/v0.9.16)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![macOS](https://img.shields.io/badge/platform-macOS-lightgrey.svg)](https://www.apple.com/macos)
 [![Ruby](https://img.shields.io/badge/ruby-%3E%3D%202.6-red.svg)](https://www.ruby-lang.org/)
@@ -111,8 +111,8 @@ Brewiz uses a YAML file to define package categories and packages. The loader au
 1. Clone the repository:
 
 ```bash
-git clone https://github.com/wstein/brewiz.git
-cd brewiz
+git clone https://github.com/brewiz/brewiz.github.io.git
+cd brewiz.github.io
 ```
 
 2. Install dependencies:
@@ -205,4 +205,4 @@ In production mode:
 
 ## License
 
-This project is licensed under the MIT License - see the [LICENSE](https://raw.githubusercontent.com/wstein/brewiz/refs/heads/main/LICENSE) file for details.
+This project is licensed under the MIT License - see the [LICENSE](https://github.com/brewiz/brewiz.github.io/blob/main/LICENSE) file for details.

@@ -29,7 +29,7 @@ export function Header(props) {
                     </a>
                     <div>
                     <h1 class="text-2xl font-bold text-center">
-                      <a href="https://github.com/wstein/brewiz" target="_blank" rel="noopener noreferrer"
+                      <a href="https://github.com/brewiz/brewiz.github.io" target="_blank" rel="noopener noreferrer"
                        class="hover:text-gray-700 hover:underline">Homebrew Package Wizard</a>
                     </h1>
                     <p class="text-gray-600 text-sm">Select packages to install on your macOS system</p>
@@ -255,7 +255,7 @@ export function Header(props) {
               <div class="text-xs text-gray-500">
               <span>
                 {FRONTEND_VERSION === (props?.version?.brewiz || FRONTEND_VERSION)
-                    ? <a href={`https://github.com/wstein/brewiz/tree/v${FRONTEND_VERSION}`} target="_blank" rel="noopener noreferrer" class="hover:text-gray-700 hover:underline">brewiz v{FRONTEND_VERSION}</a>
+                    ? <a href={`https://github.com/brewiz/brewiz.github.io/tree/v${FRONTEND_VERSION}`} target="_blank" rel="noopener noreferrer" class="hover:text-gray-700 hover:underline">brewiz v{FRONTEND_VERSION}</a>
                     : `brewiz v${props.version.brewiz} / app v${FRONTEND_VERSION}`}
               </span>
               </div>
