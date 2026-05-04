@@ -631,16 +631,6 @@ UpdatePrompt: |
       Android development.
     id: homebrew/core/gradle
     tags: [build, java, development]
-  - name: gradle@8
-    desc: gradle 8 (alternate formula) — Open-source build automation tool based on the Groovy and Kotlin DSL
-    homepage: https://www.gradle.org/
-    id: homebrew/core/gradle@8
-    tags: [build, java, development]
-    license: Apache-2.0
-    info: >-
-      Gradle 8 is a stable release series of the Gradle build automation system. It provides flexible
-      build scripting using the Groovy or Kotlin DSL and is commonly used for JVM and Android projects.
-      This keg-only formula is an alternate version kept separate from the main `gradle` formula.
   - name: leiningen
     desc: Build tool for Clojure
     homepage: https://github.com/technomancy/leiningen
@@ -1630,21 +1620,23 @@ UpdatePrompt: |
       JavaScript, command-line tools, package scripts, and frontend build ecosystems.
     id: homebrew/core/node
     tags: [javascript, runtime, development]
-  - name: openjdk@21
+  - name: openjdk
     desc: Development kit for the Java programming language
-    homepage: https://openjdk.java.net/
+    homepage: https://openjdk.org/
     info: >-
-      OpenJDK 21 is an open-source implementation of the Java Platform, Standard Edition. It includes the
-      JVM, class libraries, and development tools needed for Java application development.
-    id: homebrew/core/openjdk@21
+      OpenJDK is the open-source reference implementation of the Java Platform, Standard Edition. It
+      provides the Java compiler, runtime, class libraries, and development tools needed to build and run
+      Java applications.
+    id: homebrew/core/openjdk
     tags: [java, development, programming-language]
-  - name: python@3.13
+  - name: python3
     desc: Interpreted, interactive, object-oriented programming language
     homepage: https://www.python.org/
     info: >-
-      Python 3.13 is a high-level, interpreted programming language known for its readability and
-      versatility. It supports multiple programming paradigms and has a comprehensive standard library.
-    id: homebrew/core/python@3.13
+      Python 3 is a high-level programming language known for readability, a broad standard library, and
+      a large ecosystem of packages. It is widely used for scripting, automation, web development, data
+      science, and application development.
+    id: homebrew/core/python@3.14
     tags: [python, programming-language, development, runtime]
   - name: ruby
     desc: Powerful, clean, object-oriented scripting language
