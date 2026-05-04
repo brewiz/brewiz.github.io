@@ -1,12 +1,11 @@
 #!/usr/bin/env ruby
 
-VERSION = '0.9.12'
+VERSION = '0.9.13'
 
 require 'json'
 require 'logger'
 require 'net/http'
 require 'open-uri'
-require 'open3'
 require 'optparse'
 require 'ostruct'
 require 'webrick'

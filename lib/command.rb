@@ -55,7 +55,7 @@ class Command
 
       arguments=(
         {-a,--address}'[Address to run Server on]:address'
-        {-c,--cache}'[Enable caching of brew info results]'
+        {-c,--cache}'[Enable caching of Homebrew API metadata]'
         '--zsh-completion[Generate zsh completion script]'
         {-h,--help}'[Show this help message]'
         '--no-open[Do not open browser automatically]'
@@ -71,7 +71,7 @@ class Command
   def add_options(opts, options)
     opts.on("-a", "--address ADDRESS", "Address to run Server on") { |v| options[:address] = v }
     opts.on("-p", "--port PORT", Integer, "Port to run Server on") { |v| options[:port] = v }
-    opts.on('-c', '--cache', 'Enable caching of brew info results') { |v| options[:cache_enabled] = v }
+    opts.on('-c', '--cache', 'Enable caching of Homebrew API metadata') { |v| options[:cache_enabled] = v }
     opts.on("--packages LOCATION", "URL or file path to packages.yaml package list") { |v| options[:packages_yaml] = v }
     opts.on("--no-open", "Do not open browser automatically") { options[:no_open] = 1 }
     opts.on("--zsh-completion", "Generate zsh completion script") { print_zsh_completion; exit }

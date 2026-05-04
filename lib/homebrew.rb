@@ -1,67 +1,71 @@
 class Homebrew
-  def initialize
-    check_brew_installed
+  FORMULA_API_URL = 'https://formulae.brew.sh/api/formula.json'.freeze
+  CASK_API_URL = 'https://formulae.brew.sh/api/cask.json'.freeze
+
+  def initialize(api_urls = {})
+    @formula_api_url = api_urls[:formula] || FORMULA_API_URL
+    @cask_api_url = api_urls[:cask] || CASK_API_URL
   end
 
-  def info
-    puts "Getting local Packages..."
-    output = brew_cmd('info', '--installed', '--json=v2')
-    data = JSON.parse(output)
-    process_info(data['formulae'], false) + process_info(data['casks'], true)
-  end
+  def metadata_for(packages)
+    puts 'Getting Homebrew metadata from formulae.brew.sh...'
+    formulae_by_id = formula_metadata_by_id
+    casks_by_id = cask_metadata_by_id
 
-  def update
-    puts "Updating Homebrew..."
-    res = brew_cmd('update')
-    puts res if res.length > 0
+    packages.each_with_object([]) do |pkg, metadata|
+      id = pkg['id'].to_s
+      info = if pkg['cask'] || id.start_with?('homebrew/cask/')
+        casks_by_id[id]
+      else
+        formulae_by_id[id] || casks_by_id[id]
+      end
+      metadata << info if info
+    end
   end
 
   private
 
-  def find_brew
-    brew = ['/opt/homebrew/bin/brew', '/usr/local/bin/brew', './mock/bin/brew'].find { |path| File.exist?(path) }
-    if brew == './mock-brew/bin/brew'
-      puts "Homebrew seems not to be installed. Using mock brew."
+  def formula_metadata_by_id
+    @formula_metadata_by_id ||= fetch_json(@formula_api_url).each_with_object({}) do |pkg, by_id|
+      info = process_formula(pkg)
+      by_id[info['id']] = info
     end
-    brew
   end
 
-  def check_brew_installed
-    return if @brew = find_brew
-
-    puts <<~ERROR
-    Error: Homebrew is not installed!"
-
-    Check out https://docs.brew.sh/Installation to see how to install Homebrew and
-    follow the instructions. That'll finally get you to run this command:
-
-      $ curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh | bash -s
-    ERROR
-
-    exit 1
-  end
-
-  def brew_cmd(*args)
-    stdout, stderr, status = Open3.capture3(@brew, *args)
-    raise stderr unless status.success?
-    stdout
-  end
-
-  def process_info(packages, is_cask)
-    packages.map do |pkg|
-      {
-        'name' => is_cask ? pkg['name'][0] : pkg['name'],
-        'id' => "#{pkg['tap']}/#{is_cask ? pkg['token'] : pkg['name']}",
-        'desc' => pkg['desc'],
-        'homepage' => pkg['homepage'],
-        'installed' => true,
-        'installed_on_request' => is_cask || pkg['installed'].any? { |i| i['installed_on_request'] },
-        'outdated' => pkg['outdated'],
-        'cask' => is_cask,
-        'token' => pkg['token'],
-        'versions' => is_cask ? [ pkg['version'] ] : pkg['installed'].map { |i| i['version'] },
-        'latest_version' => is_cask ? pkg['version'] : pkg['versions']['stable']
-    }.select { |k, v| v }
+  def cask_metadata_by_id
+    @cask_metadata_by_id ||= fetch_json(@cask_api_url).each_with_object({}) do |pkg, by_id|
+      info = process_cask(pkg)
+      by_id[info['id']] = info
     end
+  end
+
+  def fetch_json(url)
+    JSON.parse(URI.open(url).read)
+  rescue => e
+    warn "Warning: failed to load Homebrew API metadata from #{url}: #{e.message.strip}"
+    []
+  end
+
+  def process_formula(pkg)
+    {
+      'name' => pkg['name'],
+      'id' => "#{pkg['tap']}/#{pkg['name']}",
+      'desc' => pkg['desc'],
+      'homepage' => pkg['homepage'],
+      'cask' => false,
+      'license' => pkg['license']
+    }.select { |_, v| !v.nil? }
+  end
+
+  def process_cask(pkg)
+    token = pkg['token']
+    {
+      'name' => Array(pkg['name']).first || token,
+      'id' => "#{pkg['tap']}/#{token}",
+      'desc' => pkg['desc'],
+      'homepage' => pkg['homepage'],
+      'cask' => true,
+      'token' => token
+    }.select { |_, v| !v.nil? }
   end
 end

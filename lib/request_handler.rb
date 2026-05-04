@@ -55,10 +55,40 @@ class RequestHandler < WEBrick::HTTPServlet::AbstractServlet
   end
 
   def serve_frontend_assets(path, response)
-    URI.open(@options[:app_url] + path) do |proxy|
+    return serve_local_frontend_asset(path, response) unless remote_frontend_assets?
+
+    URI.open(frontend_asset_url(path)) do |proxy|
       response['Content-Type'] = determine_content_type(path, proxy.content_type)
       response.body = proxy.read
     end
+  rescue OpenURI::HTTPError
+    response.status = 404
+    response['Content-Type'] = 'text/plain'
+    response.body = 'Not found'
+  end
+
+  def remote_frontend_assets?
+    @options[:app_url].to_s.start_with?('http://', 'https://')
+  end
+
+  def frontend_asset_url(path)
+    "#{@options[:app_url].to_s.sub(%r{/+\z}, '')}/#{path.sub(%r{\A/+}, '')}"
+  end
+
+  def serve_local_frontend_asset(path, response)
+    root = File.expand_path(@options[:app_url])
+    relative_path = path.sub(%r{\A/+}, '')
+    file_path = File.expand_path(relative_path, root)
+
+    unless file_path.start_with?(root + File::SEPARATOR) && File.file?(file_path)
+      response.status = 404
+      response['Content-Type'] = 'text/plain'
+      response.body = 'Not found'
+      return
+    end
+
+    response['Content-Type'] = determine_content_type(file_path, 'text/plain')
+    response.body = File.binread(file_path)
   end
 
   def determine_content_type(path, type)

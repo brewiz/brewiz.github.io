@@ -1,0 +1,264 @@
+#!/usr/bin/env ruby
+
+require 'optparse'
+require 'json'
+require 'open-uri'
+require 'yaml'
+
+options = {
+  file: 'data/packages.yaml',
+  formula_api: 'https://formulae.brew.sh/api/formula.json',
+  cask_api: 'https://formulae.brew.sh/api/cask.json',
+  api: true,
+  direct_taps: true
+}
+
+OptionParser.new do |opts|
+  opts.banner = "Usage: #{File.basename($PROGRAM_NAME)} [options]"
+
+  opts.on('-f', '--file FILE', 'Package YAML file to validate') do |file|
+    options[:file] = file
+  end
+
+  opts.on('--formula-api URL', 'Formula API URL (default: formulae.brew.sh bulk API)') do |url|
+    options[:formula_api] = url
+  end
+
+  opts.on('--cask-api URL', 'Cask API URL (default: formulae.brew.sh bulk API)') do |url|
+    options[:cask_api] = url
+  end
+
+  opts.on('--no-api', 'Skip Homebrew bulk API validation') do
+    options[:api] = false
+  end
+
+  opts.on('--no-direct-taps', 'Skip direct GitHub validation for external taps') do
+    options[:direct_taps] = false
+  end
+
+  opts.on('-h', '--help', 'Show this help message') do
+    puts opts
+    exit
+  end
+end.parse!
+
+def load_categories(path)
+  docs = YAML.load_stream(File.read(path))
+  docs.find { |doc| doc.is_a?(Array) && doc.first&.key?('id') } || abort("No package category document found in #{path}")
+end
+
+def validate_package(category_id, package)
+  warnings = []
+  id = package['id'].to_s
+  tap, _, token = id.rpartition('/')
+  label = package['name'] || id
+
+  warnings << "#{category_id}/#{label}: missing id" if id.empty?
+  warnings << "#{id}: expected tap/token id format" if tap.empty? || token.empty?
+  warnings << "#{id}: cask field should be true for homebrew/cask ids" if tap == 'homebrew/cask' && package.key?('cask') && package['cask'] != true
+  warnings << "#{id}: homebrew/core formula id should not set cask: true" if tap == 'homebrew/core' && package['cask'] == true
+  warnings << "#{id}: token does not match id token #{token}" if package['token'] && package['token'] != token
+  warnings << "#{id}: versions should come from Homebrew runtime metadata, not packages.yaml" if package.key?('versions') || package.key?('latest_version')
+
+  warnings
+end
+
+def fetch_json(url)
+  JSON.parse(URI.open(url, open_uri_headers).read)
+rescue => e
+  abort "Failed to load Homebrew API metadata from #{url}: #{e.message.strip}"
+end
+
+def formula_ids_from_api(url)
+  fetch_json(url).each_with_object({}) do |pkg, ids|
+    ids["#{pkg['tap']}/#{pkg['name']}"] = pkg
+  end
+end
+
+def cask_ids_from_api(url)
+  fetch_json(url).each_with_object({}) do |pkg, ids|
+    ids["#{pkg['tap']}/#{pkg['token']}"] = pkg
+  end
+end
+
+def candidate_ids_for(id, ids_by_id)
+  _, _, token = id.rpartition('/')
+  candidates = ids_by_id.keys.select do |candidate|
+    candidate_token = candidate.rpartition('/').last
+    candidate_token.include?(token) ||
+      (token.include?(candidate_token) && candidate_token.length >= (token.length * 0.6))
+  end
+
+  candidates.sort.take(3)
+end
+
+def not_found_warning(id, source, ids_by_id)
+  candidates = candidate_ids_for(id, ids_by_id)
+  message = "#{id}: not found in #{source}"
+  message += "; candidates: #{candidates.join(', ')}" unless candidates.empty?
+  message
+end
+
+def validate_against_api(package, formulae_by_id, casks_by_id)
+  warnings = []
+  id = package['id'].to_s
+  tap, _, = id.rpartition('/')
+  formula = formulae_by_id[id]
+  cask = casks_by_id[id]
+
+  case tap
+  when 'homebrew/core'
+    warnings << not_found_warning(id, 'Homebrew formula API', formulae_by_id) unless formula
+    warnings << "#{id}: found in cask API but uses homebrew/core tap" if cask
+  when 'homebrew/cask'
+    warnings << not_found_warning(id, 'Homebrew cask API', casks_by_id) unless cask
+    warnings << "#{id}: found in formula API but uses homebrew/cask tap" if formula
+  else
+    if package['cask'] == true
+      warnings << "#{id}: external cask not found in cask API; verify tap is installed or id is still valid" unless cask
+    else
+      warnings << "#{id}: external formula not found in formula API; verify tap is installed or id is still valid" unless formula
+    end
+  end
+
+  warnings
+end
+
+def open_uri_headers
+  headers = {}
+  headers['Authorization'] = "Bearer #{ENV['GITHUB_TOKEN']}" if ENV['GITHUB_TOKEN']
+  headers
+end
+
+def fetch_optional_json(url)
+  JSON.parse(URI.open(url, open_uri_headers).read)
+rescue OpenURI::HTTPError, JSON::ParserError, SocketError, Errno::ECONNREFUSED, Errno::ETIMEDOUT
+  nil
+end
+
+def raw_tap_entry_reachable?(owner, repo, token, path, cache)
+  repo_name = "homebrew-#{repo}"
+  key = "#{owner}/#{repo_name}/#{path}/#{token}.rb"
+  return cache[key] if cache.key?(key)
+
+  cache[key] = begin
+    url = "https://raw.githubusercontent.com/#{owner}/#{repo_name}/HEAD/#{path}/#{token}.rb"
+    URI.open(url, open_uri_headers).close
+    true
+  rescue OpenURI::HTTPError, SocketError, Errno::ECONNREFUSED, Errno::ETIMEDOUT
+    false
+  end
+end
+
+def raw_tap_root_entry_reachable?(owner, repo, token, cache)
+  repo_name = "homebrew-#{repo}"
+  key = "#{owner}/#{repo_name}/#{token}.rb"
+  return cache[key] if cache.key?(key)
+
+  cache[key] = begin
+    url = "https://raw.githubusercontent.com/#{owner}/#{repo_name}/HEAD/#{token}.rb"
+    URI.open(url, open_uri_headers).close
+    true
+  rescue OpenURI::HTTPError, SocketError, Errno::ECONNREFUSED, Errno::ETIMEDOUT
+    false
+  end
+end
+
+def tap_migrations(owner, repo, cache)
+  repo_name = "homebrew-#{repo}"
+  key = "#{owner}/#{repo_name}/tap_migrations.json"
+  cache[key] ||= begin
+    urls = [
+      "https://raw.githubusercontent.com/#{owner}/#{repo_name}/HEAD/tap_migrations.json",
+      "https://raw.githubusercontent.com/#{owner}/#{repo_name}/refs/heads/main/tap_migrations.json",
+      "https://raw.githubusercontent.com/#{owner}/#{repo_name}/refs/heads/master/tap_migrations.json"
+    ]
+
+    urls.each do |url|
+      migrations = fetch_optional_json(url)
+      break migrations if migrations.is_a?(Hash)
+    end || {}
+  end
+end
+
+def migration_target_id(owner, repo, token, cache)
+  target_tap = tap_migrations(owner, repo, cache)[token]
+  return unless target_tap.is_a?(String) && !target_tap.empty?
+
+  target_tap.split('/').length == 3 ? target_tap : "#{target_tap}/#{token}"
+end
+
+def direct_tap_entry_exists?(owner, repo, token, cask:, cache:)
+  if cask
+    raw_tap_entry_reachable?(owner, repo, token, 'Casks', cache) ||
+      raw_tap_entry_reachable?(owner, repo, token, 'Cask', cache)
+  else
+    raw_tap_entry_reachable?(owner, repo, token, 'Formula', cache) ||
+      raw_tap_root_entry_reachable?(owner, repo, token, cache)
+  end
+end
+
+def validate_external_tap_direct(package, cache, formulae_by_id, casks_by_id)
+  id = package['id'].to_s
+  owner, repo, token = id.split('/', 3)
+  return [] unless owner && repo && token
+
+  cask = package['cask'] == true
+  return [] if direct_tap_entry_exists?(owner, repo, token, cask: cask, cache: cache)
+
+  migrated_id = migration_target_id(owner, repo, token, cache)
+  if migrated_id
+    target_exists = formulae_by_id.key?(migrated_id) || casks_by_id.key?(migrated_id)
+    message = "#{id}: migrated to #{migrated_id}; update id"
+    message += ' (target not found in Homebrew APIs)' unless target_exists
+    return [message]
+  end
+
+  kind = cask ? 'cask' : 'formula'
+  message = "#{id}: external #{kind} not found directly in #{owner}/homebrew-#{repo}"
+  [message]
+end
+
+categories = load_categories(options[:file])
+
+warnings = categories.flat_map do |category|
+  (category['packages'] || []).flat_map do |package|
+    validate_package(category['id'], package)
+  end
+end
+
+if options[:api]
+  puts "Loading Homebrew formula API: #{options[:formula_api]}"
+  formulae_by_id = formula_ids_from_api(options[:formula_api])
+  puts "Loading Homebrew cask API: #{options[:cask_api]}"
+  casks_by_id = cask_ids_from_api(options[:cask_api])
+
+  warnings += categories.flat_map do |category|
+    (category['packages'] || []).flat_map do |package|
+      validate_against_api(package, formulae_by_id, casks_by_id)
+    end
+  end
+
+  if options[:direct_taps]
+    tree_cache = {}
+    external_warnings = categories.flat_map do |category|
+      (category['packages'] || []).flat_map do |package|
+        id = package['id'].to_s
+        next [] if id.start_with?('homebrew/core/') || id.start_with?('homebrew/cask/')
+
+        validate_external_tap_direct(package, tree_cache, formulae_by_id, casks_by_id)
+      end
+    end
+
+    warnings.reject! { |warning| warning.include?('external formula not found in formula API') || warning.include?('external cask not found in cask API') }
+    warnings += external_warnings
+  end
+end
+
+if warnings.empty?
+  puts "Package YAML valid: true"
+else
+  puts "Package YAML valid: false"
+  warnings.each { |warning| puts "- #{warning}" }
+  exit 1
+end

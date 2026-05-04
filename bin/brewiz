@@ -1,12 +1,11 @@
 #!/usr/bin/env ruby
 
-VERSION = '0.9.12'
+VERSION = '0.9.13'
 
 require 'json'
 require 'logger'
 require 'net/http'
 require 'open-uri'
-require 'open3'
 require 'optparse'
 require 'ostruct'
 require 'webrick'
@@ -69,7 +68,7 @@ class Command
 
       arguments=(
         {-a,--address}'[Address to run Server on]:address'
-        {-c,--cache}'[Enable caching of brew info results]'
+        {-c,--cache}'[Enable caching of Homebrew API metadata]'
         '--zsh-completion[Generate zsh completion script]'
         {-h,--help}'[Show this help message]'
         '--no-open[Do not open browser automatically]'
@@ -85,7 +84,7 @@ class Command
   def add_options(opts, options)
     opts.on("-a", "--address ADDRESS", "Address to run Server on") { |v| options[:address] = v }
     opts.on("-p", "--port PORT", Integer, "Port to run Server on") { |v| options[:port] = v }
-    opts.on('-c', '--cache', 'Enable caching of brew info results') { |v| options[:cache_enabled] = v }
+    opts.on('-c', '--cache', 'Enable caching of Homebrew API metadata') { |v| options[:cache_enabled] = v }
     opts.on("--packages LOCATION", "URL or file path to packages.yaml package list") { |v| options[:packages_yaml] = v }
     opts.on("--no-open", "Do not open browser automatically") { options[:no_open] = 1 }
     opts.on("--zsh-completion", "Generate zsh completion script") { print_zsh_completion; exit }
@@ -95,70 +94,74 @@ class Command
 end
 
 class Homebrew
-  def initialize
-    check_brew_installed
+  FORMULA_API_URL = 'https://formulae.brew.sh/api/formula.json'.freeze
+  CASK_API_URL = 'https://formulae.brew.sh/api/cask.json'.freeze
+
+  def initialize(api_urls = {})
+    @formula_api_url = api_urls[:formula] || FORMULA_API_URL
+    @cask_api_url = api_urls[:cask] || CASK_API_URL
   end
 
-  def info
-    puts "Getting local Packages..."
-    output = brew_cmd('info', '--installed', '--json=v2')
-    data = JSON.parse(output)
-    process_info(data['formulae'], false) + process_info(data['casks'], true)
-  end
+  def metadata_for(packages)
+    puts 'Getting Homebrew metadata from formulae.brew.sh...'
+    formulae_by_id = formula_metadata_by_id
+    casks_by_id = cask_metadata_by_id
 
-  def update
-    puts "Updating Homebrew..."
-    res = brew_cmd('update')
-    puts res if res.length > 0
+    packages.each_with_object([]) do |pkg, metadata|
+      id = pkg['id'].to_s
+      info = if pkg['cask'] || id.start_with?('homebrew/cask/')
+        casks_by_id[id]
+      else
+        formulae_by_id[id] || casks_by_id[id]
+      end
+      metadata << info if info
+    end
   end
 
   private
 
-  def find_brew
-    brew = ['/opt/homebrew/bin/brew', '/usr/local/bin/brew', './mock/bin/brew'].find { |path| File.exist?(path) }
-    if brew == './mock-brew/bin/brew'
-      puts "Homebrew seems not to be installed. Using mock brew."
+  def formula_metadata_by_id
+    @formula_metadata_by_id ||= fetch_json(@formula_api_url).each_with_object({}) do |pkg, by_id|
+      info = process_formula(pkg)
+      by_id[info['id']] = info
     end
-    brew
   end
 
-  def check_brew_installed
-    return if @brew = find_brew
-
-    puts <<~ERROR
-    Error: Homebrew is not installed!"
-
-    Check out https://docs.brew.sh/Installation to see how to install Homebrew and
-    follow the instructions. That'll finally get you to run this command:
-
-      $ curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh | bash -s
-    ERROR
-
-    exit 1
-  end
-
-  def brew_cmd(*args)
-    stdout, stderr, status = Open3.capture3(@brew, *args)
-    raise stderr unless status.success?
-    stdout
-  end
-
-  def process_info(packages, is_cask)
-    packages.map do |pkg|
-      {
-        'name' => is_cask ? pkg['name'][0] : pkg['name'],
-        'id' => "#{pkg['tap']}/#{is_cask ? pkg['token'] : pkg['name']}",
-        'desc' => pkg['desc'],
-        'homepage' => pkg['homepage'],
-        'installed' => true,
-        'installed_on_request' => is_cask || pkg['installed'].any? { |i| i['installed_on_request'] },
-        'outdated' => pkg['outdated'],
-        'cask' => is_cask,
-        'token' => pkg['token'],
-        'versions' => is_cask ? [ pkg['version'] ] : pkg['installed'].map { |i| i['version'] },
-        'latest_version' => is_cask ? pkg['version'] : pkg['versions']['stable']
-    }.select { |k, v| v }
+  def cask_metadata_by_id
+    @cask_metadata_by_id ||= fetch_json(@cask_api_url).each_with_object({}) do |pkg, by_id|
+      info = process_cask(pkg)
+      by_id[info['id']] = info
     end
+  end
+
+  def fetch_json(url)
+    JSON.parse(URI.open(url).read)
+  rescue => e
+    warn "Warning: failed to load Homebrew API metadata from #{url}: #{e.message.strip}"
+    []
+  end
+
+  def process_formula(pkg)
+    {
+      'name' => pkg['name'],
+      'id' => "#{pkg['tap']}/#{pkg['name']}",
+      'desc' => pkg['desc'],
+      'homepage' => pkg['homepage'],
+      'cask' => false,
+      'license' => pkg['license']
+    }.select { |_, v| !v.nil? }
+  end
+
+  def process_cask(pkg)
+    token = pkg['token']
+    {
+      'name' => Array(pkg['name']).first || token,
+      'id' => "#{pkg['tap']}/#{token}",
+      'desc' => pkg['desc'],
+      'homepage' => pkg['homepage'],
+      'cask' => true,
+      'token' => token
+    }.select { |_, v| !v.nil? }
   end
 end
 
@@ -174,6 +177,7 @@ class PackageManager
 
   def reload
     @packages = load_config
+    validate_package_consistency
     update_packages_with_brew_info
     add_missing_infos
     write_packages_to_cache
@@ -208,30 +212,41 @@ class PackageManager
   end
 
   def update_packages_with_brew_info
-    @homebrew.update
-    brew_info = @homebrew.info.to_h { |pkg| [pkg['id'], pkg] }
+    configured_packages = @packages.flat_map { |category| category['packages'] }
+    brew_info = @homebrew.metadata_for(configured_packages).to_h { |pkg| [pkg['id'], pkg] }
 
     @packages.each do |category|
       category['packages'].map! do |pkg|
-        # Preserve tags if they exist in the original package
+        curated_info = pkg['info']
         tags = pkg['tags']
-        merged = pkg.merge(brew_info.delete(pkg['id']) || {}).select { |_, v| v }
+        merged = pkg.merge(brew_info.delete(pkg['id']) || {}).select { |_, v| !v.nil? }
+        merged['info'] = curated_info if curated_info
         merged['tags'] = tags if tags
         merged
       end
-      category['packages'].sort_by! { |pkg| pkg['name'].downcase }
+      category['packages'].sort_by! { |pkg| pkg['name'].to_s.downcase }
     end
-
-    add_uncategorized_packages(brew_info)
   end
 
-  def add_uncategorized_packages(remaining_packages)
-    uncategorized = @packages.find { |cat| cat['id'] == 'uncategorized' }
-    return unless uncategorized
+  def validate_package_consistency
+    warnings = []
 
-    uncategorized['packages'] += remaining_packages.values.select { |pkg| pkg['installed_on_request'] }
-    @packages.delete(uncategorized) if uncategorized['packages'].empty?
-    @packages.sort_by! { |cat| [cat['id'] == 'uncategorized' ? 1 : 0, cat['name'].downcase] }
+    @packages.each do |category|
+      category['packages'].each do |pkg|
+        id = pkg['id'].to_s
+        tap, _, token = id.rpartition('/')
+
+        warnings << "#{category['id']}/#{pkg['name'] || id}: missing id" if id.empty?
+        warnings << "#{id}: expected tap/token id format" if tap.empty? || token.empty?
+        warnings << "#{id}: cask field should be true for homebrew/cask ids" if tap == 'homebrew/cask' && pkg.key?('cask') && pkg['cask'] != true
+        warnings << "#{id}: homebrew/core formula id should not set cask: true" if tap == 'homebrew/core' && pkg['cask'] == true
+        warnings << "#{id}: token does not match id token #{token}" if pkg['token'] && pkg['token'] != token
+        warnings << "#{id}: versions should come from Homebrew runtime metadata, not packages.yaml" if pkg.key?('versions') || pkg.key?('latest_version')
+      end
+    end
+
+    warnings.each { |warning| warn "Package metadata warning: #{warning}" }
+    warnings
   end
 
   def read_packages_from_cache
@@ -309,10 +324,40 @@ class RequestHandler < WEBrick::HTTPServlet::AbstractServlet
   end
 
   def serve_frontend_assets(path, response)
-    URI.open(@options[:app_url] + path) do |proxy|
+    return serve_local_frontend_asset(path, response) unless remote_frontend_assets?
+
+    URI.open(frontend_asset_url(path)) do |proxy|
       response['Content-Type'] = determine_content_type(path, proxy.content_type)
       response.body = proxy.read
     end
+  rescue OpenURI::HTTPError
+    response.status = 404
+    response['Content-Type'] = 'text/plain'
+    response.body = 'Not found'
+  end
+
+  def remote_frontend_assets?
+    @options[:app_url].to_s.start_with?('http://', 'https://')
+  end
+
+  def frontend_asset_url(path)
+    "#{@options[:app_url].to_s.sub(%r{/+\z}, '')}/#{path.sub(%r{\A/+}, '')}"
+  end
+
+  def serve_local_frontend_asset(path, response)
+    root = File.expand_path(@options[:app_url])
+    relative_path = path.sub(%r{\A/+}, '')
+    file_path = File.expand_path(relative_path, root)
+
+    unless file_path.start_with?(root + File::SEPARATOR) && File.file?(file_path)
+      response.status = 404
+      response['Content-Type'] = 'text/plain'
+      response.body = 'Not found'
+      return
+    end
+
+    response['Content-Type'] = determine_content_type(file_path, 'text/plain')
+    response.body = File.binread(file_path)
   end
 
   def determine_content_type(path, type)
@@ -379,7 +424,14 @@ class Server
   end
 
   def frontend_server_port_open?
-    Net::HTTP.get_response(URI(@options[:app_url]))
+    app_url = @options[:app_url].to_s
+    if app_url.start_with?('http://', 'https://')
+      response = Net::HTTP.get_response(URI("#{app_url.sub(%r{/+\z}, '')}/index.html"))
+      raise "Frontend server returned #{response.code} for #{app_url}" unless response.is_a?(Net::HTTPSuccess)
+    else
+      index_path = File.join(File.expand_path(app_url), 'index.html')
+      raise "Frontend assets not found at #{index_path}" unless File.file?(index_path)
+    end
   rescue StandardError
     raise "Node server not running on #{@options[:app_url]}"
   end

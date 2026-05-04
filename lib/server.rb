@@ -49,7 +49,14 @@ class Server
   end
 
   def frontend_server_port_open?
-    Net::HTTP.get_response(URI(@options[:app_url]))
+    app_url = @options[:app_url].to_s
+    if app_url.start_with?('http://', 'https://')
+      response = Net::HTTP.get_response(URI("#{app_url.sub(%r{/+\z}, '')}/index.html"))
+      raise "Frontend server returned #{response.code} for #{app_url}" unless response.is_a?(Net::HTTPSuccess)
+    else
+      index_path = File.join(File.expand_path(app_url), 'index.html')
+      raise "Frontend assets not found at #{index_path}" unless File.file?(index_path)
+    end
   rescue StandardError
     raise "Node server not running on #{@options[:app_url]}"
   end

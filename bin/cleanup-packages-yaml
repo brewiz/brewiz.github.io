@@ -1,0 +1,150 @@
+#!/usr/bin/env ruby
+
+require 'optparse'
+require 'tempfile'
+require 'yaml'
+
+options = {
+  file: 'data/packages.yaml',
+  write: false
+}
+
+OptionParser.new do |opts|
+  opts.banner = "Usage: #{File.basename($PROGRAM_NAME)} [options]"
+
+  opts.on('-f', '--file FILE', 'Package YAML file to clean') do |file|
+    options[:file] = file
+  end
+
+  opts.on('-w', '--write', 'Write cleaned YAML in place') do
+    options[:write] = true
+  end
+
+  opts.on('-h', '--help', 'Show this help message') do
+    puts opts
+    exit
+  end
+end.parse!
+
+CURATED_PACKAGE_KEYS = ['id', 'tags', 'info'].freeze
+
+def load_stream(path)
+  raw = File.read(path)
+  docs = YAML.load_stream(raw)
+  category_index = docs.find_index { |doc| doc.is_a?(Array) && doc.first&.key?('id') }
+  abort "No package category document found in #{path}" unless category_index
+
+  [raw, docs, category_index]
+end
+
+def clean_package(package)
+  cleaned = CURATED_PACKAGE_KEYS.each_with_object({}) do |key, result|
+    result[key] = package[key] if package.key?(key)
+  end
+
+  tap, = package['id'].to_s.rpartition('/')
+  # External taps do not encode formula vs cask in the tap name. Keep this hint only
+  # when Homebrew cannot infer it from homebrew/cask.
+  if package['cask'] == true && !['homebrew/core', 'homebrew/cask'].include?(tap)
+    cleaned['cask'] = true
+  end
+
+  cleaned
+end
+
+def yaml_value(value)
+  return "''" if value.nil?
+  return value unless value.to_s.match?(/[:#\[\]{}&*!|>'"%@`]|\A[-?]\s|\s\z/)
+
+  value.to_s.dump
+end
+
+def write_block(output, indent, key, value)
+  output << "#{' ' * indent}#{key}: >-\n"
+  value.to_s.split("\n").each do |line|
+    output << "#{' ' * (indent + 2)}#{line}\n"
+  end
+end
+
+def format_categories(categories)
+  output = +""
+
+  categories.each do |category|
+    output << "- id: #{category['id']}\n"
+    output << "  name: #{category['name']}\n"
+    if category['desc'].to_s.include?("\n")
+      write_block(output, 2, 'desc', category['desc'])
+    else
+      output << "  desc: #{yaml_value(category['desc'])}\n"
+    end
+
+    packages = category['packages'] || []
+    if packages.empty?
+      output << "  packages: []\n"
+      next
+    end
+
+    output << "  packages:\n"
+    packages.each do |package|
+      output << "  - id: #{package['id']}\n"
+      output << "    cask: true\n" if package['cask'] == true
+      tags = package['tags'] || []
+      output << "    tags: [#{tags.join(', ')}]\n"
+      write_block(output, 4, 'info', package['info']) if package.key?('info')
+    end
+  end
+
+  output
+end
+
+def metadata_prefix(raw)
+  parts = raw.split(/^---\s*$\n/, 3)
+  return "---\n" unless parts.size == 3
+
+  "---\n#{parts[1]}---\n"
+end
+
+def clean_categories(categories)
+  categories.map do |category|
+    {
+      'id' => category['id'],
+      'name' => category['name'],
+      'desc' => category['desc'],
+      'packages' => (category['packages'] || []).map { |package| clean_package(package) }
+    }
+  end
+end
+
+def cleaned_stream(raw, docs, category_index)
+  docs[category_index] = clean_categories(docs[category_index])
+  metadata_prefix(raw) + format_categories(docs[category_index])
+end
+
+def print_diff(old_content, new_content)
+  old_file = Tempfile.new('packages-yaml-old')
+  new_file = Tempfile.new('packages-yaml-new')
+
+  begin
+    old_file.write(old_content)
+    new_file.write(new_content)
+    old_file.close
+    new_file.close
+    system('diff', '-u', old_file.path, new_file.path)
+  ensure
+    old_file.unlink
+    new_file.unlink
+  end
+end
+
+raw, docs, category_index = load_stream(options[:file])
+cleaned = cleaned_stream(raw, docs, category_index)
+
+YAML.load_stream(cleaned)
+print_diff(raw, cleaned)
+
+if options[:write]
+  File.write(options[:file], cleaned)
+  puts "Wrote cleaned #{options[:file]}"
+else
+  puts "Dry run: no file written. Re-run with --write to apply."
+end

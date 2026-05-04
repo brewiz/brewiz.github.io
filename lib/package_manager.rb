@@ -10,6 +10,7 @@ class PackageManager
 
   def reload
     @packages = load_config
+    validate_package_consistency
     update_packages_with_brew_info
     add_missing_infos
     write_packages_to_cache
@@ -44,30 +45,41 @@ class PackageManager
   end
 
   def update_packages_with_brew_info
-    @homebrew.update
-    brew_info = @homebrew.info.to_h { |pkg| [pkg['id'], pkg] }
+    configured_packages = @packages.flat_map { |category| category['packages'] }
+    brew_info = @homebrew.metadata_for(configured_packages).to_h { |pkg| [pkg['id'], pkg] }
 
     @packages.each do |category|
       category['packages'].map! do |pkg|
-        # Preserve tags if they exist in the original package
+        curated_info = pkg['info']
         tags = pkg['tags']
-        merged = pkg.merge(brew_info.delete(pkg['id']) || {}).select { |_, v| v }
+        merged = pkg.merge(brew_info.delete(pkg['id']) || {}).select { |_, v| !v.nil? }
+        merged['info'] = curated_info if curated_info
         merged['tags'] = tags if tags
         merged
       end
-      category['packages'].sort_by! { |pkg| pkg['name'].downcase }
+      category['packages'].sort_by! { |pkg| pkg['name'].to_s.downcase }
     end
-
-    add_uncategorized_packages(brew_info)
   end
 
-  def add_uncategorized_packages(remaining_packages)
-    uncategorized = @packages.find { |cat| cat['id'] == 'uncategorized' }
-    return unless uncategorized
+  def validate_package_consistency
+    warnings = []
 
-    uncategorized['packages'] += remaining_packages.values.select { |pkg| pkg['installed_on_request'] }
-    @packages.delete(uncategorized) if uncategorized['packages'].empty?
-    @packages.sort_by! { |cat| [cat['id'] == 'uncategorized' ? 1 : 0, cat['name'].downcase] }
+    @packages.each do |category|
+      category['packages'].each do |pkg|
+        id = pkg['id'].to_s
+        tap, _, token = id.rpartition('/')
+
+        warnings << "#{category['id']}/#{pkg['name'] || id}: missing id" if id.empty?
+        warnings << "#{id}: expected tap/token id format" if tap.empty? || token.empty?
+        warnings << "#{id}: cask field should be true for homebrew/cask ids" if tap == 'homebrew/cask' && pkg.key?('cask') && pkg['cask'] != true
+        warnings << "#{id}: homebrew/core formula id should not set cask: true" if tap == 'homebrew/core' && pkg['cask'] == true
+        warnings << "#{id}: token does not match id token #{token}" if pkg['token'] && pkg['token'] != token
+        warnings << "#{id}: versions should come from Homebrew runtime metadata, not packages.yaml" if pkg.key?('versions') || pkg.key?('latest_version')
+      end
+    end
+
+    warnings.each { |warning| warn "Package metadata warning: #{warning}" }
+    warnings
   end
 
   def read_packages_from_cache
