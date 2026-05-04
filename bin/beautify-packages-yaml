@@ -15,14 +15,16 @@ class PackageBeautifier
   def beautify
     # Load YAML data with error handling
     begin
+      raw = File.read(@input_file)
       # Load all documents from the YAML stream
-      docs = YAML.load_stream(File.read(@input_file))
+      docs = YAML.load_stream(raw)
       # Find the document that contains the categories array
-      data = docs.find { |d| d.is_a?(Array) }
-      unless data
+      category_index = docs.find_index { |d| d.is_a?(Array) && d.first&.key?('id') }
+      unless category_index
         puts "Error: Could not find categories array in '#{@input_file}'"
         exit 1
       end
+      data = docs[category_index]
     rescue Errno::ENOENT
       puts "Error: Input file '#{@input_file}' not found."
       exit 1
@@ -35,7 +37,7 @@ class PackageBeautifier
     processed_data = process_data(data)
 
     # Generate custom formatted YAML
-    yaml_output = "---\n" + custom_yaml_formatter(processed_data)
+    yaml_output = preserved_prefix(raw) + "---\n" + custom_yaml_formatter(processed_data)
 
     # Handle output based on options
     if @dry_run
@@ -73,26 +75,28 @@ class PackageBeautifier
       # Use smart line breaking for category descriptions
       category['desc'] = smart_line_break(category['desc'])
 
-      # Process packages in this category
+      # Process packages in this category. Packages use the curated id-keyed schema:
+      # id, optional cask hint for external taps, tags, and info.
       category['packages'] = (category['packages'] || []).map do |package|
-        # Normalize tags to array
-        package['tags'] = normalize_tags(package['tags'])
+        cleaned = {}
+        cleaned['id'] = package['id']
+        cleaned['cask'] = true if package['cask'] == true && !standard_homebrew_tap?(package['id'])
 
-        # Use smart line breaking for package descriptions
-        package['desc'] = smart_line_break(package['desc'])
+        # Normalize tags to array
+        cleaned['tags'] = normalize_tags(package['tags'])
 
         # Format info for multi-line display with smart line breaking
         if package['info']
-          package['info'] = package['info'].split("\n").map { |line|
+          cleaned['info'] = package['info'].split("\n").map { |line|
             smart_line_break(line)
           }.join("\n")
         end
 
-        package
+        cleaned
       end
 
-      # Sort packages by name, then by ID as secondary criteria
-      category['packages'].sort_by! { |pkg| [pkg['name'].to_s.downcase, pkg['id'].to_s.downcase] }
+      # Sort packages by id token because runtime metadata now supplies display names.
+      category['packages'].sort_by! { |pkg| package_sort_key(pkg) }
 
       category
     end
@@ -108,6 +112,17 @@ class PackageBeautifier
     end
 
     processed_data
+  end
+
+  def standard_homebrew_tap?(id)
+    tap, = id.to_s.rpartition('/')
+    ['homebrew/core', 'homebrew/cask'].include?(tap)
+  end
+
+  def package_sort_key(package)
+    id = package['id'].to_s
+    token = id.rpartition('/').last
+    [token.downcase, id.downcase]
   end
 
   def normalize_tags(tags)
@@ -204,37 +219,8 @@ class PackageBeautifier
       if category['packages'] && !category['packages'].empty?
         output << "\n"
         category['packages'].each do |package|
-          output << "  - name: #{package['name']}\n"
-
-          # Handle package description with proper multi-line formatting
-          if package['desc'] && package['desc'].include?("\n")
-            output << "    desc: >-\n"
-            package['desc'].split("\n").each do |line|
-              output << "      #{line}\n"
-            end
-          else
-            output << "    desc: #{format_yaml_value(package['desc'])}\n"
-          end
-
-          output << "    homepage: #{package['homepage']}\n"
-
-          # Add cask field if present
-          output << "    cask: true\n" if package['cask']
-
-          # Format info field as a proper YAML block scalar
-          if package['info']
-            if package['info'].include?("\n")
-              output << "    info: >-\n"
-              # Split by newlines and add proper indentation for each line
-              package['info'].split("\n").each do |line|
-                output << "      #{line}\n"
-              end
-            else
-              output << "    info: #{format_yaml_value(package['info'])}\n"
-            end
-          end
-
-          output << "    id: #{package['id']}\n" if package['id']
+          output << "  - id: #{package['id']}\n"
+          output << "    cask: true\n" if package['cask'] == true
 
           # Format tags as single line [tag1, tag2, tag3]
           if package['tags'] && !package['tags'].empty?
@@ -242,6 +228,13 @@ class PackageBeautifier
             output << "    tags: #{tags_str}\n"
           else
             output << "    tags: []\n"
+          end
+
+          if package['info']
+            output << "    info: >-\n"
+            package['info'].split("\n").each do |line|
+              output << "      #{line}\n"
+            end
           end
         end
       else
@@ -289,6 +282,13 @@ class PackageBeautifier
 
     result << current_line unless current_line.empty?
     result.join("\n")
+  end
+
+  def preserved_prefix(raw)
+    category_doc_start = raw.index(/^---\n- id:/)
+    return "" unless category_doc_start
+
+    raw[0...category_doc_start]
   end
 end
 
@@ -355,47 +355,37 @@ Usage: bin/beautify-packages-yaml [options]
   name: AI & Machine Learning
   desc: Tools for artificial intelligence, machine learning, and large language models.
   packages:
-  - name: ollama
-    desc: >-
-      Create, run, and share large language models (LLMs). This is an AI model manager that runs
-      locally on your machine.
-    homepage: https://ollama.com/
+  - id: homebrew/core/ollama
+    tags: [llm, local-ai, machine-learning, models]
     info: >-
       Ollama is a tool for running and managing large language models locally. It allows you to easily
       run, create, and customize AI models on your own hardware, with support for various open-source
       models.
-    id: homebrew/core/ollama
-    tags: [llm, local-ai, machine-learning, models]
 - id: archive
   name: Archiving & Compression
   desc: Tools for compressing, archiving, and extracting files.
   packages:
-  - name: p7zip
-    desc: 7-Zip (high compression file archiver) implementation
-    homepage: https://github.com/p7zip-project/p7zip
+  - id: homebrew/core/p7zip
+    tags: [compression, archive, 7zip, file-management]
     info: >-
       p7zip is a port of 7-Zip for POSIX systems, providing high compression ratio in 7z format and
       supporting various other archive formats.
-    id: homebrew/core/p7zip
-    tags: [compression, archive, 7zip, file-management]
-  - name: RAR Archiver
-    desc: Archive manager for data compression and backups
-    homepage: https://www.rarlab.com/
+  - id: example/tap/rar
     cask: true
+    tags: [compression, archive, rar, proprietary, backup]
     info: >-
       RAR is a proprietary archive file format that supports data compression, error recovery, and file
       spanning. This package provides tools to create and extract RAR archives.
-    id: homebrew/cask/rar
-    tags: [compression, archive, rar, proprietary, backup]
 ...
 ```
 
 ## Features:
 
 - Sorts categories alphabetically
-- Sorts packages within categories by name, then by ID
+- Sorts packages within categories by package token, then by ID
 - Uses single-line array format for tags
 - Preserves multi-line text fields
+- Writes packages with the curated schema: id, optional external cask hint, tags, info
 - Smart line breaking for long descriptions
 - Preview changes with dry run
 - Handles HTML entity unescaping

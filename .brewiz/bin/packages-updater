@@ -67,7 +67,7 @@ def load_packages_yaml(path = 'data/packages.yaml')
   raw = File.read(path)
   docs = YAML.load_stream(raw)
   # Find the document that contains the categories (Array of hashes)
-  idx = docs.find_index { |d| d.is_a?(Array) }
+  idx = docs.find_index { |d| d.is_a?(Array) && d.first&.key?('id') }
   unless idx
     abort "Could not locate categories document (array) in #{path}"
   end
@@ -86,8 +86,8 @@ end
 def score_category(candidate_id, categories, payload)
   # Simple heuristic score 1..4
   return 4 if categories.any? { |c| c['id'] == candidate_id }
-  name = payload['name'].to_s.downcase
-  desc = payload['desc'].to_s.downcase
+  name = package_label(payload).downcase
+  desc = [payload['desc'], payload['info']].compact.join(' ').downcase
   # 3 if any category name contains tokens from payload name/desc
   categories.each do |c|
     cname = c['name'].to_s.downcase
@@ -138,10 +138,31 @@ end
 def find_package_index(categories, pkg_id, pkg_name)
   categories.each_with_index do |cat, ci|
     (cat['packages'] || []).each_with_index do |p, pi|
-      return [ci, pi] if p['id'] == pkg_id || p['name'].to_s.downcase == pkg_name.to_s.downcase
+      return [ci, pi] if p['id'] == pkg_id
+      return [ci, pi] if pkg_name && p['name'].to_s.downcase == pkg_name.to_s.downcase
     end
   end
   nil
+end
+
+def package_label(package)
+  return '' unless package
+
+  package['name'] || package['id'].to_s
+end
+
+def standard_homebrew_tap?(id)
+  tap, = id.to_s.rpartition('/')
+  ['homebrew/core', 'homebrew/cask'].include?(tap)
+end
+
+def curated_payload(payload)
+  cleaned = {}
+  cleaned['id'] = payload['id']
+  cleaned['cask'] = true if payload['cask'] == true && !standard_homebrew_tap?(payload['id'])
+  cleaned['tags'] = Array(payload['tags']).map(&:to_s)
+  cleaned['info'] = payload['info'] if payload['info']
+  cleaned
 end
 
 def apply_operations(ops, categories)
@@ -151,6 +172,7 @@ def apply_operations(ops, categories)
     path = op['path'] || op[:path]
     category_id = op['category'] || op[:category]
     payload = op['payload'] || op[:payload]
+    payload = curated_payload(payload || {}) if payload
 
     unless path && path.end_with?('packages.yaml')
       abort "Operation targets unexpected path: #{path.inspect}. Only data/packages.yaml is supported."
@@ -158,7 +180,7 @@ def apply_operations(ops, categories)
 
     case action
     when 'skip', :skip
-      puts "SKIP: #{payload && payload['name']}"
+      puts "SKIP: #{package_label(payload)}"
       next
     when 'insert', :insert
       cat = categories.find { |c| c['id'] == category_id }
@@ -196,9 +218,8 @@ def apply_operations(ops, categories)
       end
 
       cat['packages'] ||= []
-      # Insert payload as-is (preserve keys order from payload)
       cat['packages'] << payload
-      puts "Inserted #{payload['name']} into #{category_id}"
+      puts "Inserted #{package_label(payload)} into #{category_id}"
 
     when 'update', :update
       pkg_id = payload && payload['id']
@@ -213,7 +234,7 @@ def apply_operations(ops, categories)
       payload.each do |k, v|
         existing[k] = v
       end
-      puts "Updated #{existing['name']} (category #{categories[ci]['id']})"
+      puts "Updated #{package_label(existing)} (category #{categories[ci]['id']})"
 
     else
       abort "Unknown op: #{action.inspect}"
@@ -277,7 +298,7 @@ def main
   end
 
   if OPTIONS[:beautify] && !OPTIONS[:dry_run]
-    beautify = File.join(File.dirname(__FILE__), 'beautify-packages-yaml')
+    beautify = File.expand_path('../../bin/beautify-packages-yaml', __dir__)
     if File.executable?(beautify)
       puts "Running beautifier..."
       system(beautify, '-i', 'data/packages.yaml', '-I') rescue nil

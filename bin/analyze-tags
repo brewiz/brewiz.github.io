@@ -3,6 +3,7 @@
 
 require 'yaml'
 require 'optparse'
+require 'set'
 
 options = {}
 options[:output_file] = nil
@@ -29,6 +30,10 @@ output << ""
 output << "Generated on: #{Time.now.strftime('%Y-%m-%d')} | Version: #{File.exist?('VERSION') ? File.read('VERSION').strip : 'N/A'}</br>"
 output << "Analyzed file: #{options[:file]}"
 output << ""
+
+def package_label(package)
+  package['name'] || package['id']
+end
 
 def wrap_md_space(text, width = 84)
   return text if text.length <= width
@@ -66,7 +71,9 @@ output << ""
 
 # Parse the YAML file
 file_path = options[:file]
-data = YAML.load_file(file_path)
+docs = YAML.load_stream(File.read(file_path))
+data = docs.find { |doc| doc.is_a?(Array) && doc.first&.key?('id') }
+abort "Could not locate categories document in #{file_path}" unless data
 
 # Initialize tracking variables
 tag_counts = Hash.new(0)
@@ -92,12 +99,12 @@ data.each do |category|
 
         package['tags'].each do |tag|
           tag_counts[tag] += 1
-          tag_to_packages[tag] << package['name']
+          tag_to_packages[tag] << package_label(package)
           tag_to_categories[tag].add(category_id)
         end
       else
         packages_without_tags << {
-          'name' => package['name'],
+          'name' => package_label(package),
           'category' => category_id,
           'category_name' => category['name']
         }

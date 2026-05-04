@@ -53,10 +53,13 @@ backup_path = "#{packages_file}.bak"
 File.write(backup_path, File.read(packages_file))
 puts "Created backup at #{backup_path}"
 
-# Write the updated packages.yaml
+# Write the updated packages.yaml, then normalize it back to the curated schema.
 File.open(packages_file, 'w') do |file|
   file.write(YAML.dump(packages_data))
 end
+
+beautifier = File.expand_path('beautify-packages-yaml', __dir__)
+system(beautifier, '-i', packages_file, '-I') or abort "Failed to beautify #{packages_file}"
 
 puts "Updated packages file successfully!"
 

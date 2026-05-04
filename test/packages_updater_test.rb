@@ -89,8 +89,10 @@ class PackagesUpdaterTest < Minitest::Test
 
       # Verify the inserted package appears in the written file
       written = File.read(data_path)
-      assert_includes written, 'name: testpkg'
       assert_includes written, 'id: homebrew/core/testpkg'
+      refute_includes written, 'name: testpkg'
+      refute_includes written, 'desc: Test package for full-run'
+      refute_includes written, 'homepage: https://example.com/testpkg'
     end
   end
 
@@ -106,5 +108,11 @@ class PackagesUpdaterTest < Minitest::Test
     script_src = File.join(REPO_ROOT, '.brewiz', 'bin', 'packages-updater')
     script_dst = File.join(tmp, '.brewiz', 'bin', 'packages-updater')
     FileUtils.cp(script_src, script_dst)
+
+    FileUtils.mkdir_p(File.join(tmp, 'bin'))
+    beautifier_src = File.join(REPO_ROOT, 'bin', 'beautify-packages-yaml')
+    beautifier_dst = File.join(tmp, 'bin', 'beautify-packages-yaml')
+    FileUtils.cp(beautifier_src, beautifier_dst)
+    File.chmod(0755, beautifier_dst)
   end
 end

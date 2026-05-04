@@ -57,7 +57,7 @@ class PackageManager
         merged['tags'] = tags if tags
         merged
       end
-      category['packages'].sort_by! { |pkg| pkg['name'].to_s.downcase }
+      category['packages'].sort_by! { |pkg| (pkg['name'] || pkg['id']).to_s.downcase }
     end
   end
 

@@ -43,6 +43,9 @@ begin
     file.write(YAML.dump(packages_data))
   end
 
+  beautifier = File.expand_path('beautify-packages-yaml', __dir__)
+  system(beautifier, '-i', packages_file, '-I') or abort "Failed to beautify #{packages_file}"
+
   puts "Updated #{updated_packages} of #{total_packages} packages with new tags"
   puts "Tags update complete!"
 
