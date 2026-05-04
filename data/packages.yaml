@@ -154,14 +154,6 @@ UpdatePrompt: |
   name: Browsers & Web Tools
   desc: Web browsers and tools for API development and web-related tasks.
   packages:
-  - name: arc
-    desc: Chromium based browser
-    homepage: https://arc.net/
-    info: >-
-      Arc is a Chromium-based web browser focused on productivity and a modern user interface. It offers
-      unique features for tab and workspace management.
-    id: homebrew/cask/arc
-    tags: [web, productivity]
   - name: kotlin
     desc: Statically typed programming language for the JVM
     homepage: https://kotlinlang.org/
