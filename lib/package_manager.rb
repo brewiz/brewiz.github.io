@@ -47,18 +47,32 @@ class PackageManager
   def update_packages_with_brew_info
     configured_packages = @packages.flat_map { |category| category['packages'] }
     brew_info = @homebrew.metadata_for(configured_packages).to_h { |pkg| [pkg['id'], pkg] }
+    installed_info = @homebrew.installed_packages.to_h { |pkg| [pkg['id'], pkg] }
 
     @packages.each do |category|
       category['packages'].map! do |pkg|
         curated_info = pkg['info']
         tags = pkg['tags']
-        merged = pkg.merge(brew_info.delete(pkg['id']) || {}).select { |_, v| !v.nil? }
+        id = pkg['id']
+        merged = pkg.merge(brew_info.delete(id) || {}).merge(installed_info.delete(id) || {}).select { |_, v| !v.nil? }
         merged['info'] = curated_info if curated_info
         merged['tags'] = tags if tags
         merged
       end
       category['packages'].sort_by! { |pkg| (pkg['name'] || pkg['id']).to_s.downcase }
     end
+
+    add_uncategorized_packages(installed_info)
+  end
+
+  def add_uncategorized_packages(remaining_packages)
+    uncategorized = @packages.find { |cat| cat['id'] == 'uncategorized' }
+    return unless uncategorized
+
+    uncategorized['packages'] ||= []
+    uncategorized['packages'] += remaining_packages.values.select { |pkg| pkg['installed_on_request'] }
+    @packages.delete(uncategorized) if uncategorized['packages'].empty?
+    @packages.sort_by! { |cat| [cat['id'] == 'uncategorized' ? 1 : 0, cat['name'].to_s.downcase] }
   end
 
   def validate_package_consistency
