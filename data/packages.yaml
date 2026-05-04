@@ -365,6 +365,11 @@ UpdatePrompt: |
     tags: [development, ai, command-line]
     info: >-
       Repomix is a tool that packs repository contents into a single AI-friendly file. It helps prepare code repositories for AI analysis by combining files into a structured format that's easy for AI models to process and understand.
+  - id: wstein/tap/cx-cli
+    desc: Repository-native toolchain for live MCP workspaces, durable notes, and verifiable AI handoffs
+    tags: [development, ai, command-line]
+    info: >-
+      cx-cli is a repository-native toolchain for agent-assisted development: it exposes live MCP workspace access, maintains durable project notes, and produces verifiable bundle artifacts for AI handoff. Its goal is to keep exploration, memory, and proof aligned so agents, developers, and CI can inspect the same trusted project context over time.
   - id: homebrew/core/cargo-generate
     tags: [development, rust, build]
     info: >-
