@@ -1787,14 +1787,6 @@ UpdatePrompt: |
       provides quick access to your clipboard history through a simple interface and keyboard shortcuts.
     id: homebrew/cask/maccy
     tags: [productivity, macos, utility]
-  - name: mouseless
-    desc: Mouse control with the keyboard
-    homepage: https://mouseless.click/
-    info: >-
-      Mouseless is a tool that allows you to control your mouse using only the keyboard, improving
-      accessibility and efficiency for keyboard-centric workflows.
-    id: homebrew/cask/mouseless
-    tags: [macos, keyboard, productivity]
   - name: Raycast
     desc: Control your tools with a few keystrokes
     homepage: https://raycast.com/
